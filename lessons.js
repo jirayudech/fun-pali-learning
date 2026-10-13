@@ -1,3 +1,4 @@
+import { grammarLessons } from './grammar.js';
 export const lessons = [
   {
     id: 'sounds', title: 'รู้จักเสียงและอักษร', icon: 'อ', level: 'เริ่มต้น', minutes: 5,
@@ -41,6 +42,7 @@ export const lessons = [
       { id: 'sentences-3', text: 'deseti ในประโยคตัวอย่างหมายถึงอะไร?', options: ['เดิน', 'แสดงหรือสอน', 'นอน', 'ฟัง'], answer: 1, why: 'deseti เป็นกริยาหมายถึงแสดงหรือสอน' }
     ]
   }
+  , ...grammarLessons
 ];
 
 export function publicLessons() {

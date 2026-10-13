@@ -42,10 +42,14 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
           psql -v ON_ERROR_STOP=1 -f supabase/schema.sql
           psql -v ON_ERROR_STOP=1 -f test/database.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/games.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/games.sql
+          psql -v ON_ERROR_STOP=1 -f test/games-database.sql
       - name: Prepare static website
         run: |
           mkdir -p dist
-          cp index.html app.js oauth.js style.css config.js lessons.js favicon.svg dist/
+          cp index.html app.js oauth.js art.js grammar.js game-engine.js game-ui.js style.css config.js lessons.js favicon.svg dist/
+          cp -r assets dist/assets
           touch dist/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

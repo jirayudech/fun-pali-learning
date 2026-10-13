@@ -3,12 +3,13 @@ import { readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
-const files = ['index.html', 'app.js', 'oauth.js', 'style.css', 'config.js', 'lessons.js', 'favicon.svg'];
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
+const files = ['index.html', 'app.js', 'oauth.js', 'art.js', 'grammar.js', 'game-engine.js', 'game-ui.js', 'style.css', 'config.js', 'lessons.js', 'favicon.svg'];
 http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   const file = pathname === '/' || pathname === '/fun-pali-learning/' ? 'index.html' : pathname.replace(/^\/fun-pali-learning\//, '').replace(/^\//, '');
-  if (!files.includes(file)) { res.writeHead(404); res.end('Not found'); return; }
+  const isArt = /^assets\/(guide|garden|trophy)(-pollinations)?\.(svg|png|jpg|webp)$/.test(file);
+  if (!files.includes(file) && !isArt) { res.writeHead(404); res.end('Not found'); return; }
   try {
     const content = await readFile(resolve(root, file));
     res.writeHead(200, { 'Content-Type': `${types[file.slice(file.lastIndexOf('.'))]}; charset=utf-8`, 'Cache-Control': 'no-store' });

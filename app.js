@@ -1,5 +1,8 @@
 import { config } from './config.js';
 import { lessons, recommend } from './lessons.js';
+import { grammarLessons } from './grammar.js';
+import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js';
+import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js';
 import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js';
 
 const app = document.querySelector('#app');
@@ -8,6 +11,8 @@ const SESSION_KEY = 'pali-auth-v1';
 const DEMO_KEY = 'pali-demo-history-v1';
 let session = null, demo = false, dashboard = null, view = 'home', authTab = 'login', quiz = null;
 let refreshPromise = null;
+let game = null, gameProgress = null, board = null, gameBusy = false;
+const DEMO_GAME_KEY = 'pali-demo-games-v1';
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lessonById = id => lessons.find(l => l.id === id);
 const date = value => new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -38,12 +43,12 @@ async function request(path, { method = 'GET', data, authenticated = true } = {}
 function button(label, action, extra = '') { return `<button class="button ${extra}" data-action="${action}">${label}</button>`; }
 function brand() { return '<a class="brand" href="./"><span class="brand-icon">ป</span><span>บาลีทีละนิด<small>PĀLI LEARNING</small></span></a>'; }
 function renderAuth(message = '') {
-  app.innerHTML = `<main class="auth-layout"><section class="auth-intro">${brand()}<div class="auth-mark">ธ</div><div class="eyebrow">A LITTLE EVERY DAY</div><h1>เปิดประตูสู่ภาษาบาลี<br>ทีละคำ ทีละวัน</h1><p>เริ่มจากเสียงที่คุ้นเคย ไปสู่ความหมายที่ลึกขึ้น<br>มีพื้นที่เรียนรู้ และเส้นทางที่เป็นของคุณเอง</p><span class="badge">3 บทเรียนเริ่มต้น · เรียนฟรี</span></section><section class="panel"><div class="tabs"><button data-action="login-tab" class="${authTab === 'login' ? 'active' : ''}">เข้าสู่ระบบ</button><button data-action="register-tab" class="${authTab === 'register' ? 'active' : ''}">สร้างบัญชี</button></div>${!configured ? '<div class="banner">เว็บไซต์ยังไม่ได้เชื่อมฐานข้อมูล บัญชีและประวัติออนไลน์ยังใช้ไม่ได้ ลองบทเรียนตัวอย่างได้ด้านล่าง</div>' : ''}<div class="social-auth"><button class="button google full" data-action="google-login" ${!configured ? 'disabled' : ''}><span class="google-mark" aria-hidden="true">G</span>เข้าสู่ระบบด้วย Google</button><div class="auth-divider"><span>หรือใช้อีเมล</span></div></div><form id="auth-form">${authTab === 'register' ? '<label for="name">อยากให้เราเรียกคุณว่าอะไร?</label><input id="name" name="name" maxlength="60" required autocomplete="nickname" placeholder="ชื่อเล่นของคุณ">' : ''}<label for="email">อีเมล</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><label for="password">รหัสผ่าน ${authTab === 'register' ? '(อย่างน้อย 10 ตัว)' : ''}</label><input id="password" name="password" type="password" minlength="${authTab === 'register' ? '10' : '1'}" maxlength="128" required autocomplete="${authTab === 'register' ? 'new-password' : 'current-password'}"><p class="error" id="auth-error" role="alert">${esc(message)}</p><button class="button full" type="submit" ${!configured ? 'disabled' : ''}>${authTab === 'login' ? 'เข้าสู่พื้นที่เรียนรู้ →' : 'สร้างบัญชีของฉัน →'}</button></form><p class="auth-footer">บัญชีและประวัติเก็บที่ Supabase แยกตามผู้เรียน ผู้ดูแลโครงการสามารถเข้าถึงฐานข้อมูลได้ รหัสผ่านจัดการโดย Supabase Auth<br>ไม่มีการเชื่อมบัญชี ChatGPT หรือส่งประวัติไปยัง ChatGPT โดยอัตโนมัติ</p>${button('ลองเรียนโดยไม่สร้างบัญชี', 'demo', 'secondary full')}<p class="auth-footer">โหมดทดลองเก็บประวัติเฉพาะเบราว์เซอร์นี้ ไม่ซิงก์ข้ามเครื่อง</p></section></main>`;
+  app.innerHTML = `<main class="auth-layout"><section class="auth-intro">${brand()}<div class="auth-mark">ธ</div><div class="eyebrow">A LITTLE EVERY DAY</div><h1>เปิดประตูสู่ภาษาบาลี<br>ทีละคำ ทีละวัน</h1><p>เริ่มจากเสียงที่คุ้นเคย ไปสู่ความหมายที่ลึกขึ้น<br>มีพื้นที่เรียนรู้ และเส้นทางที่เป็นของคุณเอง</p><span class="badge">${lessons.length} บทเรียน · เรียนฟรี</span></section><section class="panel"><div class="tabs"><button data-action="login-tab" class="${authTab === 'login' ? 'active' : ''}">เข้าสู่ระบบ</button><button data-action="register-tab" class="${authTab === 'register' ? 'active' : ''}">สร้างบัญชี</button></div>${!configured ? '<div class="banner">เว็บไซต์ยังไม่ได้เชื่อมฐานข้อมูล บัญชีและประวัติออนไลน์ยังใช้ไม่ได้ ลองบทเรียนตัวอย่างได้ด้านล่าง</div>' : ''}<div class="social-auth"><button class="button google full" data-action="google-login" ${!configured ? 'disabled' : ''}><span class="google-mark" aria-hidden="true">G</span>เข้าสู่ระบบด้วย Google</button><div class="auth-divider"><span>หรือใช้อีเมล</span></div></div><form id="auth-form">${authTab === 'register' ? '<label for="name">อยากให้เราเรียกคุณว่าอะไร?</label><input id="name" name="name" maxlength="60" required autocomplete="nickname" placeholder="ชื่อเล่นของคุณ">' : ''}<label for="email">อีเมล</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><label for="password">รหัสผ่าน ${authTab === 'register' ? '(อย่างน้อย 10 ตัว)' : ''}</label><input id="password" name="password" type="password" minlength="${authTab === 'register' ? '10' : '1'}" maxlength="128" required autocomplete="${authTab === 'register' ? 'new-password' : 'current-password'}"><p class="error" id="auth-error" role="alert">${esc(message)}</p><button class="button full" type="submit" ${!configured ? 'disabled' : ''}>${authTab === 'login' ? 'เข้าสู่พื้นที่เรียนรู้ →' : 'สร้างบัญชีของฉัน →'}</button></form><p class="auth-footer">บัญชีและประวัติเก็บที่ Supabase แยกตามผู้เรียน ผู้ดูแลโครงการสามารถเข้าถึงฐานข้อมูลได้ รหัสผ่านจัดการโดย Supabase Auth<br>ไม่มีการเชื่อมบัญชี ChatGPT หรือส่งประวัติไปยัง ChatGPT โดยอัตโนมัติ</p>${button('ลองเรียนโดยไม่สร้างบัญชี', 'demo', 'secondary full')}<p class="auth-footer">โหมดทดลองเก็บประวัติเฉพาะเบราว์เซอร์นี้ ไม่ซิงก์ข้ามเครื่อง</p></section></main>`;
 }
 function shell(content) {
   const name = dashboard.user.name;
-  const active = view.startsWith('lesson:') || view === 'quiz' || view === 'result' ? 'lessons' : view;
-  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
+  const active = view === 'game' || view === 'game-result' ? 'games' : view.startsWith('lesson:') || view === 'quiz' || view === 'result' ? 'lessons' : view;
+  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['games', '⚡', 'เกมไวยากรณ์'], ['leaderboard', '♜', 'อันดับประจำสัปดาห์'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
 }
 function cards() {
   return `<div class="cards">${lessons.map((l, i) => {
@@ -56,15 +61,19 @@ function home() {
   const recommended = lessonById(recommendation.lessonId);
   const mastered = recommendation.stats.filter(s => s.latestScore >= 0.8).length;
   const average = history.length ? Math.round(history.reduce((n, h) => n + h.score / h.total, 0) / history.length * 100) : 0;
-  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">วันนี้มาเติมความรู้ภาษาบาลีกันอีกนิดนะ</p></div><span class="badge">เส้นทางส่วนตัวของคุณ</span></div><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art" aria-hidden="true"><div class="ring">${recommended.icon}</div></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่ทำได้ดี</span><div class="value">${mastered}<small>/ 3 บท</small></div><span class="muted">คะแนนล่าสุดอย่างน้อย 80%</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
+  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">วันนี้มาเติมความรู้ภาษาบาลีกันอีกนิดนะ</p></div><span class="badge">เส้นทางส่วนตัวของคุณ</span></div><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art" aria-hidden="true"><div class="ring">${recommended.icon}</div></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่ทำได้ดี</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">คะแนนล่าสุดอย่างน้อย 80%</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
 }
 function render() {
   if (!dashboard) return renderAuth();
   if (view === 'home') return home();
+  if (view === 'games') return shell(gameLobby(gameProgress, dashboard.history, demo));
+  if (view === 'game') return shell(gameQuestion(game));
+  if (view === 'game-result') return shell(gameResult(game));
+  if (view === 'leaderboard') return shell(leaderboardView(board, gameProgress, demo));
   if (view === 'lessons') return shell(`<div class="heading"><div><div class="eyebrow">THE FIRST STEPS</div><h1>บทเรียนทั้งหมด</h1><p class="muted">อ่าน ทำแบบฝึกหัด แล้วทบทวนในจังหวะของคุณ</p></div></div>${cards()}`);
   if (view.startsWith('lesson:')) {
     const l = lessonById(view.split(':')[1]);
-    shell(`<div class="heading"><div><div class="eyebrow">${l.level} · ${l.minutes} นาที</div><h1>${l.title}</h1><p class="muted">${l.intro}</p></div></div><article class="panel">${l.blocks.map(([title, text]) => `<section class="content-block"><h3>${title}</h3><p>${text}</p></section>`).join('')}</article><div class="actions">${button('ลองทำแบบฝึกหัด →', `quiz:${l.id}`)}${button('กลับไปบทเรียนทั้งหมด', 'nav:lessons', 'secondary')}</div>`);
+    shell(`<div class="heading"><div><div class="eyebrow">${l.level} · ${l.minutes} นาที</div><h1>${l.title}</h1><p class="muted">${l.intro}</p></div></div><article class="panel">${l.blocks.map(([title, text]) => `<section class="content-block"><h3>${title}</h3><p>${text}</p></section>`).join('')}</article><div class="actions">${button(grammarLessons.some(g => g.id === l.id) ? 'เล่นเกมฝึกบทนี้ →' : 'ลองทำแบบฝึกหัด →', `${grammarLessons.some(g => g.id === l.id) ? 'game-start' : 'quiz'}:${l.id}`)}${button('กลับไปบทเรียนทั้งหมด', 'nav:lessons', 'secondary')}</div>`);
     return;
   }
   if (view === 'quiz') {
@@ -87,11 +96,126 @@ function tutorPrompt() {
   const recommended = lessonById(dashboard.recommendation.lessonId);
   return `ช่วยเป็นติวเตอร์ภาษาบาลีสำหรับผู้เริ่มต้น สอนเป็นภาษาไทยอย่างใจเย็น\nเป้าหมาย: อ่านคำบาลีและเข้าใจประโยคพื้นฐาน\nบทเรียนที่ควรฝึก: ${recommended.title}\nเหตุผล: ${dashboard.recommendation.reason}\n\nความก้าวหน้าล่าสุด:\n${dashboard.recommendation.stats.map(s => `${lessonById(s.id).title}: ${s.attempts ? `ฝึก ${s.attempts} ครั้ง คะแนนล่าสุด ${Math.round(s.latestScore * 100)}%` : 'ยังไม่ได้ฝึก'}`).join('\n')}\n\nเนื้อหาที่กำลังเรียน:\n${recommended.blocks.map(([h, t]) => `${h}: ${t}`).join('\n')}\n\nช่วยถามประเมินความเข้าใจทีละข้อ รอให้ฉันตอบก่อนเฉลย อธิบายรูปศัพท์และหน้าที่คำด้วยตัวอย่างง่าย ๆ แยกตัวอย่างแต่งเพื่อเรียนจากคำอ้างในคัมภีร์ ถ้าไม่แน่ใจให้บอกตรง ๆ และอย่าแต่งแหล่งอ้างอิงขึ้นเอง เริ่มจากคำถามสั้นหนึ่งข้อ`;
 }
+function demoGameData() {
+  try {
+    const data = JSON.parse(localStorage.getItem(DEMO_GAME_KEY) || '{}');
+    return { credits: data.credits && typeof data.credits === 'object' ? data.credits : {}, days: Array.isArray(data.days) ? data.days : [] };
+  } catch { return { credits: {}, days: [] }; }
+}
+async function loadGameProgress() {
+  if (demo) {
+    const data = demoGameData();
+    const today = bangkokDay();
+    const d = new Date(today + 'T12:00:00Z');
+    d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7);
+    const week = d.toISOString().slice(0, 10);
+    const entries = Object.entries(data.credits).filter(([, v]) => v === 10);
+    gameProgress = { totalXP: entries.length * 10, weekXP: entries.filter(([key]) => key.slice(0, 10) >= week).length * 10, days: data.days, joined: false };
+  } else {
+    try { gameProgress = await request('/rest/v1/rpc/get_game_progress', { method: 'POST', data: {} }); }
+    catch { gameProgress = { unavailable: true }; }
+  }
+}
+async function loadBoard() {
+  if (demo || gameProgress?.unavailable) { board = null; return; }
+  board = await request('/rest/v1/rpc/get_leaderboard', { method: 'POST', data: {} });
+}
+function resetGameSelection() {
+  game.selected = game.question.kind === 'pair' ? Array(game.question.left.length).fill(null) : [];
+  game.activeLeft = 0;
+}
+async function handleGameAction(action) {
+  if (gameBusy) return;
+  if (action.startsWith('game-start:')) {
+    if (!demo && gameProgress?.unavailable) throw new Error('เกมออนไลน์ยังไม่พร้อมในตอนนี้ กรุณาลองใหม่ภายหลัง หรือเล่นในโหมดทดลอง');
+    gameBusy = true;
+    try {
+      const lessonId = action.split(':')[1];
+      if (demo) {
+        const questions = [...grammarLessons.find(l => l.id === lessonId).questions];
+        // Fisher–Yates keeps practice order varied.
+        for (let i = questions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questions[i], questions[j]] = [questions[j], questions[i]]; }
+        const practice = createPractice(questions);
+        game = { lessonId, demo: true, practice, question: questions[0], step: 0, total: questions.length, initialTotal: questions.length, xp: 0, combo: 0, bestCombo: 0 };
+      } else {
+        const run = await request('/rest/v1/rpc/start_game', { method: 'POST', data: { p_lesson_id: lessonId } });
+        game = { ...run, lessonId, demo: false, xp: 0, combo: 0, bestCombo: 0 };
+      }
+      resetGameSelection(); view = 'game'; render(); window.scrollTo(0, 0);
+    } finally { gameBusy = false; }
+    return;
+  }
+  if (!game || view !== 'game') return;
+  const index = Number(action.split(':')[1]);
+  if (action === 'game-next' && game.feedback) {
+    gameBusy = true;
+    try {
+      if (game.done) { await loadDashboard(); view = 'game-result'; }
+      else {
+        if (demo) { advancePractice(game.practice); game.step = game.practice.step; game.question = game.practice.queue[game.step]; }
+        else { game.step = game.nextState.step; game.question = game.nextState.nextQuestion; }
+        game.feedback = null; resetGameSelection();
+      }
+      render(); window.scrollTo(0, 0);
+    } finally { gameBusy = false; }
+    return;
+  }
+  if (game.feedback) return;
+  if (action.startsWith('game-left:')) { game.activeLeft = index; render(); return; }
+  if (action.startsWith('game-pick:')) {
+    if (index < 0 || index >= game.question.options.length) return;
+    if (game.question.kind === 'build') { if (!game.selected.includes(index)) game.selected.push(index); }
+    else if (game.question.kind === 'pair') {
+      const previous = game.selected.indexOf(index);
+      if (previous >= 0) game.selected[previous] = null;
+      game.selected[game.activeLeft] = index;
+      const next = game.selected.indexOf(null); if (next >= 0) game.activeLeft = next;
+    } else game.selected = [index];
+    render(); return;
+  }
+  if (action.startsWith('game-remove:')) { game.selected.splice(index, 1); render(); return; }
+  if (action === 'game-reset') { resetGameSelection(); render(); return; }
+  if (action !== 'game-check') return;
+  gameBusy = true;
+  const checkButton = app.querySelector('[data-action="game-check"]');
+  if (checkButton) checkButton.disabled = true;
+  try {
+    let result;
+    if (demo) {
+      const data = demoGameData();
+      const day = bangkokDay();
+      result = submitPractice(game.practice, game.selected, q => {
+        const key = `${day}:${q.id}`;
+        if (data.credits[key]) return 0;
+        data.credits[key] = 10; return 10;
+      });
+      if (!data.days.includes(day)) data.days.push(day);
+      localStorage.setItem(DEMO_GAME_KEY, JSON.stringify(data));
+      game.total = game.practice.queue.length;
+      game.done = game.practice.step + 1 >= game.total;
+      game.firstTryCorrect = game.practice.firstTryCorrect;
+      if (game.done) {
+        dashboard.history.unshift({ lesson_id: game.lessonId, score: game.firstTryCorrect, total: game.initialTotal, created_at: new Date().toISOString() });
+        localStorage.setItem(DEMO_KEY, JSON.stringify(dashboard.history));
+      }
+    } else {
+      result = await request('/rest/v1/rpc/answer_game', { method: 'POST', data: { p_token: game.token, p_step: game.step, p_answer: game.selected } });
+      game.nextState = result; game.total = result.total; game.done = result.done; game.firstTryCorrect = result.firstTryCorrect;
+    }
+    game.feedback = result; game.xp += result.xp;
+    game.combo = result.correct ? game.combo + 1 : 0;
+    game.bestCombo = Math.max(game.bestCombo, game.combo);
+    render();
+  } catch (error) {
+    const errorEl = app.querySelector('#game-error'); if (errorEl) errorEl.textContent = error.message;
+    if (checkButton?.isConnected) checkButton.disabled = false;
+  } finally { gameBusy = false; }
+}
 async function loadDashboard() {
   if (demo) {
     let history = []; try { history = JSON.parse(localStorage.getItem(DEMO_KEY) || '[]'); } catch { /* reset invalid local demo data */ }
     if (!Array.isArray(history)) history = [];
-    history = history.filter(h => lessonById(h.lesson_id) && Number.isInteger(h.score) && h.score >= 0 && h.score <= 3 && h.total === 3 && !Number.isNaN(Date.parse(h.created_at)));
+    history = history.filter(h => lessonById(h.lesson_id) && Number.isInteger(h.score) && h.score >= 0 && h.score <= h.total && Number.isInteger(h.total) && h.total > 0 && h.total <= 5 && !Number.isNaN(Date.parse(h.created_at)));
     dashboard = { user: { name: 'เพื่อนผู้เรียน' }, history, recommendation: recommend(history) };
   } else {
     const [profile, history] = await Promise.all([
@@ -100,12 +224,14 @@ async function loadDashboard() {
     ]);
     dashboard = { user: { name: profile[0]?.display_name || 'ผู้เรียน' }, history, recommendation: recommend(history) };
   }
+  await loadGameProgress();
 }
 app.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]');
   if (!target || target.disabled) return;
   const action = target.dataset.action;
   try {
+    if (action.startsWith('game-')) { await handleGameAction(action); return; }
     if (action === 'google-login') {
       target.disabled = true;
       document.querySelector('#auth-error').textContent = '';
@@ -122,7 +248,7 @@ app.addEventListener('click', async event => {
       if (!demo) await request('/auth/v1/logout', { method: 'POST', data: {} });
       saveSession(null); demo = false; dashboard = null; quiz = null; return renderAuth();
     }
-    if (action.startsWith('nav:')) { view = action.split(':')[1]; render(); window.scrollTo(0, 0); return; }
+    if (action.startsWith('nav:')) { view = action.split(':')[1]; if (view === 'leaderboard') await loadBoard(); render(); window.scrollTo(0, 0); return; }
     if (action.startsWith('lesson:')) { view = action; render(); window.scrollTo(0, 0); return; }
     if (action.startsWith('quiz:')) {
       target.disabled = true;
@@ -160,6 +286,9 @@ app.addEventListener('submit', async event => {
         if (!result.access_token) { authTab = 'login'; renderAuth('ส่งคำขอแล้ว กรุณาตรวจอีเมลและกดยืนยันก่อนเข้าสู่ระบบ (หากอีเมลนี้สมัครแล้ว ให้เข้าสู่ระบบ)'); return; }
       } else result = await request('/auth/v1/token?grant_type=password', { method: 'POST', data: payload, authenticated: false });
       saveSession({ ...result, expires_at: Date.now() / 1000 + result.expires_in }); demo = false; view = 'home'; await loadDashboard(); render();
+    } else if (form.id === 'leaderboard-form') {
+      await request('/rest/v1/rpc/set_leaderboard', { method: 'POST', data: { p_alias: data.get('alias'), p_join: data.get('join') === 'on' } });
+      await loadGameProgress(); await loadBoard(); render(); toast('บันทึกการเข้าร่วมแล้ว');
     } else if (form.id === 'quiz-form') {
       const answers = quiz.questions.map((_, i) => Number(data.get(`q${i}`)));
       if (demo) {
