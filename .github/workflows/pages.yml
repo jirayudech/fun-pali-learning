@@ -50,7 +50,7 @@ jobs:
             echo "Recovery must refuse an ambiguous account list"
             exit 1
           fi
-          rg 'ต้องมีผู้ใช้เพียงบัญชีเดียว' recovery-check.log
+          grep -q 'ต้องมีผู้ใช้เพียงบัญชีเดียว' recovery-check.log
           psql -v ON_ERROR_STOP=1 -c "DELETE FROM auth.users; INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');"
           psql -v ON_ERROR_STOP=1 -f supabase/update-course.sql
           psql -v ON_ERROR_STOP=1 -f supabase/update-course.sql
