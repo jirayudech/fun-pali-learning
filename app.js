@@ -57,7 +57,7 @@ function shell(content) {
 function cards() {
   return `<div class="cards">${lessons.map((l, i) => {
     const stat = dashboard.recommendation.stats.find(s => s.id === l.id);
-    return `<article class="lesson-card"><img class="lesson-scene" src="${lessonArt(l.id)}" alt="" loading="lazy" width="400" height="240"><div class="eyebrow">บทที่ 0${i + 1}</div><h3>${l.title}</h3><p>${l.intro}</p><div class="card-meta"><span>${l.level} · ${l.minutes} นาที</span><span>${stat.attempts ? `ล่าสุด ${Math.round(stat.latestScore * 100)}%` : stat.reported ? 'เรียนแล้ว · ยังไม่มีคะแนน' : 'ยังไม่ได้ฝึก'}</span></div><progress class="progress" max="100" value="${Math.round((stat.latestScore || 0) * 100)}" aria-label="คะแนนล่าสุดของบทเรียน"></progress><div class="actions">${button(stat.learned ? 'ทบทวนบทเรียน →' : 'เริ่มเรียน →', `lesson:${l.id}`, 'secondary full')}</div></article>`;
+    return `<article class="lesson-card"><img class="lesson-scene" src="${lessonArt(l.id)}" alt="" loading="lazy" width="400" height="240"><div class="eyebrow">บทที่ ${String(i + 1).padStart(2, '0')}</div><h3>${l.title}</h3><p>${l.intro}</p><div class="card-meta"><span>${l.level} · ${l.minutes} นาที</span><span>${stat.attempts ? `ล่าสุด ${Math.round(stat.latestScore * 100)}%` : stat.reported ? 'เรียนแล้ว · ยังไม่มีคะแนน' : 'ยังไม่ได้ฝึก'}</span></div><progress class="progress" max="100" value="${Math.round((stat.latestScore || 0) * 100)}" aria-label="คะแนนล่าสุดของบทเรียน"></progress><div class="actions">${button(stat.learned ? 'ทบทวนบทเรียน →' : 'เริ่มเรียน →', `lesson:${l.id}`, 'secondary full')}</div></article>`;
   }).join('')}</div>`;
 }
 function home() {
