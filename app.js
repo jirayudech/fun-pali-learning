@@ -1,5 +1,6 @@
 import { config } from './config.js';
 import { lessons, recommend } from './lessons.js';
+import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js';
 
 const app = document.querySelector('#app');
 const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl) && Boolean(config.supabasePublishableKey);
@@ -37,7 +38,7 @@ async function request(path, { method = 'GET', data, authenticated = true } = {}
 function button(label, action, extra = '') { return `<button class="button ${extra}" data-action="${action}">${label}</button>`; }
 function brand() { return '<a class="brand" href="./"><span class="brand-icon">ป</span><span>บาลีทีละนิด<small>PĀLI LEARNING</small></span></a>'; }
 function renderAuth(message = '') {
-  app.innerHTML = `<main class="auth-layout"><section class="auth-intro">${brand()}<div class="auth-mark">ธ</div><div class="eyebrow">A LITTLE EVERY DAY</div><h1>เปิดประตูสู่ภาษาบาลี<br>ทีละคำ ทีละวัน</h1><p>เริ่มจากเสียงที่คุ้นเคย ไปสู่ความหมายที่ลึกขึ้น<br>มีพื้นที่เรียนรู้ และเส้นทางที่เป็นของคุณเอง</p><span class="badge">3 บทเรียนเริ่มต้น · เรียนฟรี</span></section><section class="panel"><div class="tabs"><button data-action="login-tab" class="${authTab === 'login' ? 'active' : ''}">เข้าสู่ระบบ</button><button data-action="register-tab" class="${authTab === 'register' ? 'active' : ''}">สร้างบัญชี</button></div>${!configured ? '<div class="banner">เว็บไซต์ยังไม่ได้เชื่อมฐานข้อมูล บัญชีและประวัติออนไลน์ยังใช้ไม่ได้ ลองบทเรียนตัวอย่างได้ด้านล่าง</div>' : ''}<form id="auth-form">${authTab === 'register' ? '<label for="name">อยากให้เราเรียกคุณว่าอะไร?</label><input id="name" name="name" maxlength="60" required autocomplete="nickname" placeholder="ชื่อเล่นของคุณ">' : ''}<label for="email">อีเมล</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><label for="password">รหัสผ่าน ${authTab === 'register' ? '(อย่างน้อย 10 ตัว)' : ''}</label><input id="password" name="password" type="password" minlength="${authTab === 'register' ? '10' : '1'}" maxlength="128" required autocomplete="${authTab === 'register' ? 'new-password' : 'current-password'}"><p class="error" id="auth-error" role="alert">${esc(message)}</p><button class="button full" type="submit" ${!configured ? 'disabled' : ''}>${authTab === 'login' ? 'เข้าสู่พื้นที่เรียนรู้ →' : 'สร้างบัญชีของฉัน →'}</button></form><p class="auth-footer">บัญชีและประวัติเก็บที่ Supabase แยกตามผู้เรียน ผู้ดูแลโครงการสามารถเข้าถึงฐานข้อมูลได้ รหัสผ่านจัดการโดย Supabase Auth<br>ไม่มีการเชื่อมบัญชี ChatGPT หรือส่งประวัติไปยัง ChatGPT โดยอัตโนมัติ</p>${button('ลองเรียนโดยไม่สร้างบัญชี', 'demo', 'secondary full')}<p class="auth-footer">โหมดทดลองเก็บประวัติเฉพาะเบราว์เซอร์นี้ ไม่ซิงก์ข้ามเครื่อง</p></section></main>`;
+  app.innerHTML = `<main class="auth-layout"><section class="auth-intro">${brand()}<div class="auth-mark">ธ</div><div class="eyebrow">A LITTLE EVERY DAY</div><h1>เปิดประตูสู่ภาษาบาลี<br>ทีละคำ ทีละวัน</h1><p>เริ่มจากเสียงที่คุ้นเคย ไปสู่ความหมายที่ลึกขึ้น<br>มีพื้นที่เรียนรู้ และเส้นทางที่เป็นของคุณเอง</p><span class="badge">3 บทเรียนเริ่มต้น · เรียนฟรี</span></section><section class="panel"><div class="tabs"><button data-action="login-tab" class="${authTab === 'login' ? 'active' : ''}">เข้าสู่ระบบ</button><button data-action="register-tab" class="${authTab === 'register' ? 'active' : ''}">สร้างบัญชี</button></div>${!configured ? '<div class="banner">เว็บไซต์ยังไม่ได้เชื่อมฐานข้อมูล บัญชีและประวัติออนไลน์ยังใช้ไม่ได้ ลองบทเรียนตัวอย่างได้ด้านล่าง</div>' : ''}<div class="social-auth"><button class="button google full" data-action="google-login" ${!configured ? 'disabled' : ''}><span class="google-mark" aria-hidden="true">G</span>เข้าสู่ระบบด้วย Google</button><div class="auth-divider"><span>หรือใช้อีเมล</span></div></div><form id="auth-form">${authTab === 'register' ? '<label for="name">อยากให้เราเรียกคุณว่าอะไร?</label><input id="name" name="name" maxlength="60" required autocomplete="nickname" placeholder="ชื่อเล่นของคุณ">' : ''}<label for="email">อีเมล</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><label for="password">รหัสผ่าน ${authTab === 'register' ? '(อย่างน้อย 10 ตัว)' : ''}</label><input id="password" name="password" type="password" minlength="${authTab === 'register' ? '10' : '1'}" maxlength="128" required autocomplete="${authTab === 'register' ? 'new-password' : 'current-password'}"><p class="error" id="auth-error" role="alert">${esc(message)}</p><button class="button full" type="submit" ${!configured ? 'disabled' : ''}>${authTab === 'login' ? 'เข้าสู่พื้นที่เรียนรู้ →' : 'สร้างบัญชีของฉัน →'}</button></form><p class="auth-footer">บัญชีและประวัติเก็บที่ Supabase แยกตามผู้เรียน ผู้ดูแลโครงการสามารถเข้าถึงฐานข้อมูลได้ รหัสผ่านจัดการโดย Supabase Auth<br>ไม่มีการเชื่อมบัญชี ChatGPT หรือส่งประวัติไปยัง ChatGPT โดยอัตโนมัติ</p>${button('ลองเรียนโดยไม่สร้างบัญชี', 'demo', 'secondary full')}<p class="auth-footer">โหมดทดลองเก็บประวัติเฉพาะเบราว์เซอร์นี้ ไม่ซิงก์ข้ามเครื่อง</p></section></main>`;
 }
 function shell(content) {
   const name = dashboard.user.name;
@@ -105,6 +106,16 @@ app.addEventListener('click', async event => {
   if (!target || target.disabled) return;
   const action = target.dataset.action;
   try {
+    if (action === 'google-login') {
+      target.disabled = true;
+      document.querySelector('#auth-error').textContent = '';
+      const settings = await request('/auth/v1/settings', { authenticated: false });
+      if (!settings.external?.google) throw new Error('ผู้ดูแลยังไม่ได้เปิดการเข้าสู่ระบบด้วย Google กรุณาใช้อีเมลหรือโหมดทดลองก่อน');
+      const redirectTo = new URL(location.pathname, location.origin).href;
+      const url = await startGoogleOAuth({ supabaseUrl: config.supabaseUrl, redirectTo, storage: sessionStorage });
+      location.assign(url);
+      return;
+    }
     if (action.endsWith('-tab')) { authTab = action === 'login-tab' ? 'login' : 'register'; return renderAuth(); }
     if (action === 'demo') { demo = true; view = 'home'; await loadDashboard(); return render(); }
     if (action === 'logout') {
@@ -127,7 +138,10 @@ app.addEventListener('click', async event => {
       const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), mode: demo ? 'demo' : 'account', history: dashboard.history }, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'pali-learning-history.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
-  } catch (error) { toast(error.message); } finally { if (target.isConnected) target.disabled = false; }
+  } catch (error) {
+    if (action === 'google-login') document.querySelector('#auth-error').textContent = error.message;
+    else toast(error.message);
+  } finally { if (target.isConnected) target.disabled = false; }
 });
 app.addEventListener('submit', async event => {
   event.preventDefault();
@@ -160,11 +174,33 @@ app.addEventListener('submit', async event => {
 });
 async function initialize() {
   try {
-    // Supabase email confirmation redirects back with a session in the URL fragment.
+    const params = new URLSearchParams(location.search);
     const fragment = new URLSearchParams(location.hash.slice(1));
-    if (fragment.has('access_token') && configured) {
-      saveSession({ access_token: fragment.get('access_token'), refresh_token: fragment.get('refresh_token'), expires_at: Date.now() / 1000 + Number(fragment.get('expires_in') || 3600) });
+    const callbackError = params.get('error') || fragment.get('error');
+    if (callbackError) {
+      sessionStorage.removeItem(OAUTH_KEY);
       history.replaceState(null, '', location.pathname);
+      renderAuth(oauthErrorMessage(callbackError));
+      return;
+    }
+    if (params.has('code') && configured) {
+      const code = params.get('code');
+      // Remove credentials from the address bar before any further requests.
+      history.replaceState(null, '', location.pathname);
+      const verifier = consumeGoogleVerifier(sessionStorage);
+      app.innerHTML = '<div class="loading">กำลังเข้าสู่ระบบด้วย Google…</div>';
+      const result = await request('/auth/v1/token?grant_type=pkce', {
+        method: 'POST', authenticated: false, data: { auth_code: code, code_verifier: verifier }
+      });
+      saveSession({ ...result, expires_at: Date.now() / 1000 + result.expires_in });
+    } else if (fragment.has('access_token') && configured) {
+      // Keep the existing email-confirmation callback compatible with Supabase.
+      history.replaceState(null, '', location.pathname);
+      if (sessionStorage.getItem(OAUTH_KEY)) {
+        sessionStorage.removeItem(OAUTH_KEY);
+        throw new Error('การเข้าสู่ระบบ Google ไม่สมบูรณ์ กรุณาลองใหม่');
+      }
+      saveSession({ access_token: fragment.get('access_token'), refresh_token: fragment.get('refresh_token'), expires_at: Date.now() / 1000 + Number(fragment.get('expires_in') || 3600) });
     } else {
       const stored = localStorage.getItem(SESSION_KEY);
       if (stored) session = JSON.parse(stored);

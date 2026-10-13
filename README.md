@@ -43,6 +43,20 @@ npm start
 
 บัญชี Supabase Dashboard เป็นของผู้ดูแลเว็บ เพื่อนสมัครผ่านหน้าเว็บได้โดยไม่ต้องมีบัญชี Dashboard การเข้าสู่ Dashboard ด้วย ChatGPT ไม่ได้ให้เว็บใช้โควตา ChatGPT Plus
 
+## ตั้งค่าเข้าสู่ระบบด้วย Google
+
+ปุ่ม Google ใช้ Supabase OAuth แบบ PKCE บัญชีและประวัติผูกกับผู้ใช้ใน Supabase เช่นเดียวกับการเข้าสู่ระบบด้วยอีเมล ไม่ต้องรัน SQL เพิ่ม หากยังไม่เปิด provider ปุ่มจะแสดงข้อความแจ้งแทนการส่งผู้เรียนไปหน้าที่ใช้ไม่ได้
+
+1. เปิด https://console.cloud.google.com/ สร้างหรือเลือกโครงการ แล้วเปิด **Google Auth Platform** ตั้ง Branding (ชื่อแอปและอีเมลติดต่อ) และ Audience เป็น **External** สำหรับผู้เรียนทั่วไป
+2. ใน **Clients → Create client** เลือก **Web application** ตั้ง Authorized JavaScript origins เป็น `https://jirayudech.github.io`
+3. ตั้ง Authorized redirect URIs เป็น `https://lufrqkqvtzzzbwkdnxql.supabase.co/auth/v1/callback` โดยใช้ callback ของ Supabase ไม่ใช่ URL หน้าเว็บ
+4. ใน Supabase **Authentication → Sign In / Providers → Google** เปิด Google แล้วกรอก Client ID และ Client Secret ที่ได้รับจาก Google Cloud กด Save เก็บ Client Secret ใน Supabase เท่านั้น ห้ามใส่ใน `config.js` หรือ GitHub
+5. คง Skip nonce checks และ Allow users without an email เป็นปิด ตั้ง Supabase **Authentication → URL Configuration** ให้ Site URL และ Redirect URLs มี `https://jirayudech.github.io/fun-pali-learning/` (รวม slash ท้าย) โหมดพัฒนาให้เพิ่ม URL ของเครื่องพัฒนาแยก
+6. หาก Audience ยังเป็น Testing ให้เพิ่มอีเมลผู้ทดสอบใน Test users หากต้องการเปิดให้ผู้เรียนทั่วไป ให้เปลี่ยน Publishing status เป็น Production และทำขั้นตอนตรวจสอบที่ Google ขอ เว็บนี้ใช้ข้อมูลพื้นฐานสำหรับเข้าสู่ระบบเท่านั้น ไม่ขอสิทธิ์ Gmail/Drive
+7. หลัง deployment ผ่าน เปิดเว็บ กด Google ยืนยันบัญชี ตรวจการกลับเข้าหน้าเรียน ทำแบบฝึกหัด ออกจากระบบและกลับเข้าด้วยบัญชีเดิมเพื่อดูประวัติ ห้ามสรุปว่าตั้งค่าสำเร็จจากปุ่มที่แสดงอย่างเดียว
+
+การเข้าสู่ระบบ Google ไม่เชื่อมบัญชี ChatGPT หรือโควตา Plus และไม่เสียค่า OpenAI API
+
 ## เผยแพร่ GitHub Pages
 
 1. ต้องเป็น repository สาธารณะสำหรับ GitHub Free และคุณต้องมีสิทธิ์จัดการ repository
@@ -52,7 +66,7 @@ npm start
 5. รอ workflow ผ่านทั้ง build และ deploy แล้วเปิด URL ที่ GitHub แสดง โดย URL ที่คาดหมายคือ `https://jirayudech.github.io/fun-pali-learning/` URL นี้ยังไม่ยืนยันว่ามีเว็บจนกว่า deployment จะสำเร็จ
 6. ตรวจทั้งหน้าเว็บ สมัคร/ยืนยันอีเมล/เข้าสู่ระบบ บันทึกผล อ่านประวัติ และออกจากระบบ ก่อนส่งลิงก์ให้เพื่อน
 
-Workflow ส่งเฉพาะ `index.html`, `app.js`, `style.css`, `config.js`, `lessons.js`, `favicon.svg` ไม่ส่ง SQL หรือไฟล์ทดสอบขึ้นหน้าเว็บ การไม่มีค่า Supabase จะแสดงโหมดทดลองอย่างชัดเจนและปิดการสร้างบัญชี
+Workflow ส่งเฉพาะ `index.html`, `app.js`, `oauth.js`, `style.css`, `config.js`, `lessons.js`, `favicon.svg` ไม่ส่ง SQL หรือไฟล์ทดสอบขึ้นหน้าเว็บ การไม่มีค่า Supabase จะแสดงโหมดทดลองอย่างชัดเจนและปิดการสร้างบัญชี
 
 ## ฐานข้อมูลและสิทธิ์
 

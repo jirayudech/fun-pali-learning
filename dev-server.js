@@ -4,7 +4,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
-const files = ['index.html', 'app.js', 'style.css', 'config.js', 'lessons.js', 'favicon.svg'];
+const files = ['index.html', 'app.js', 'oauth.js', 'style.css', 'config.js', 'lessons.js', 'favicon.svg'];
 http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   const file = pathname === '/' || pathname === '/fun-pali-learning/' ? 'index.html' : pathname.replace(/^\/fun-pali-learning\//, '').replace(/^\//, '');
