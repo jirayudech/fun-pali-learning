@@ -21,6 +21,6 @@ test('markup escapes untrusted text while keeping Thai primary and Roman seconda
   assert.match(out, /pi-Thai.*พุทฺโธ/);
   assert.match(out, /pi-Latn.*Buddho/);
 });
-test('existing annotations and a-stem terminology are not duplicated', () => {
-  assert.equal(paliText('พุทฺโธ (buddho) และ a-stem'), 'พุทฺโธ (buddho) และ a-stem');
+test('existing annotations stay intact and legacy terminology uses the Thai exam term', () => {
+  assert.equal(paliText('พุทฺโธ (buddho) และ a-stem'), 'พุทฺโธ (buddho) และ อการันต์');
 });

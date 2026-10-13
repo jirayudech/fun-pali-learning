@@ -10,13 +10,14 @@ export const paliSpellings = {
 };
 const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function annotate(text, format) {
-  text = String(text ?? '');
+  // Apply the same Thai exam terminology to older Supabase question records.
+  text = String(text ?? '').replace(/\ba-stem\b/gi, 'อการันต์');
   let out = '', cursor = 0;
   for (const match of text.matchAll(/[A-Za-zāīūṅñṭḍṇḷṃṁ]+/g)) {
     const word = match[0], start = match.index;
     out += format.plain(text.slice(cursor, start));
     const thai = paliSpellings[word.toLowerCase()];
-    // Existing Thai (roman) annotations stay intact; English "a-stem" is terminology.
+    // Existing Thai (roman) annotations stay intact.
     const alreadyAnnotated = /[\u0e00-\u0e7f]\s*\($/.test(text.slice(0, start));
     const isStem = text.slice(start + word.length).startsWith('-stem');
     out += thai && !alreadyAnnotated && !isStem ? format.term(thai, word) : format.plain(word);

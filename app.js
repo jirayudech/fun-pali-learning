@@ -60,7 +60,8 @@ function cards() {
   }).join('')}</div>`;
 }
 function home() {
-  const { history, recommendation, user } = dashboard;
+  const { recommendation, user } = dashboard;
+  const history = learningHistory();
   const recommended = lessonById(recommendation.lessonId);
   const mastered = recommendation.stats.filter(s => s.latestScore >= 0.8).length;
   const average = history.length ? Math.round(history.reduce((n, h) => n + h.score / h.total, 0) / history.length * 100) : 0;
@@ -69,7 +70,7 @@ function home() {
 function render() {
   if (!dashboard) return renderAuth();
   if (view === 'home') return home();
-  if (view === 'games') return shell(gameLobby(gameProgress, dashboard.history, demo));
+  if (view === 'games') return shell(gameLobby(gameProgress, learningHistory(), demo));
   if (view === 'game') return shell(gameQuestion(game));
   if (view === 'game-result') return shell(gameResult(game));
   if (view === 'leaderboard') return shell(leaderboardView(board, gameProgress, demo));
@@ -88,7 +89,7 @@ function render() {
     return;
   }
   if (view === 'history') {
-    shell(`<div class="heading"><div><div class="eyebrow">YOUR JOURNEY</div><h1>ประวัติการเรียน</h1><p class="muted">ทุกครั้งที่ฝึก ช่วยให้เราเลือกบททบทวนที่เหมาะกับคุณ</p></div></div><section class="panel">${dashboard.history.length ? `<ul class="history-list">${dashboard.history.map(h => `<li><div><h3>${lessonById(h.lesson_id)?.title || esc(h.lesson_id)}</h3><span class="muted">${esc(date(h.created_at))}</span></div><span class="score">${h.score} / ${h.total}</span></li>`).join('')}</ul>` : '<div class="empty"><img class="empty-art" src="./assets/thinking.svg" alt="" width="220" height="132"><p>ยังไม่มีประวัติ เริ่มทำแบบฝึกหัดแรกได้เลย</p></div>'}</section><div class="actions">${button('ดาวน์โหลดประวัติของฉัน', 'export', 'secondary')}</div>`);
+    shell(`<div class="heading"><div><div class="eyebrow">YOUR JOURNEY</div><h1>ประวัติการเรียน</h1><p class="muted">ทุกครั้งที่ฝึก ช่วยให้เราเลือกบททบทวนที่เหมาะกับคุณ</p></div></div><section class="panel">${learningHistory().length ? `<ul class="history-list">${learningHistory().map(h => `<li><div><h3>${lessonById(h.lesson_id)?.title || esc(h.lesson_id)}</h3><span class="muted">${esc(date(h.created_at))}${h.local ? ' · เก็บในเครื่อง' : ''}</span></div><span class="score">${h.score} / ${h.total}</span></li>`).join('')}</ul>` : '<div class="empty"><img class="empty-art" src="./assets/thinking.svg" alt="" width="220" height="132"><p>ยังไม่มีประวัติ เริ่มทำแบบฝึกหัดแรกได้เลย</p></div>'}</section><div class="actions">${button('ดาวน์โหลดประวัติของฉัน', 'export', 'secondary')}</div>`);
     return;
   }
   if (view === 'tutor') {
@@ -102,21 +103,31 @@ function tutorPrompt() {
 function demoGameData(storageKey = DEMO_GAME_KEY) {
   try {
     const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    return { credits: data.credits && typeof data.credits === 'object' ? data.credits : {}, days: Array.isArray(data.days) ? data.days : [] };
-  } catch { return { credits: {}, days: [] }; }
+    return { credits: data.credits && typeof data.credits === 'object' ? data.credits : {}, days: Array.isArray(data.days) ? data.days : [], history: Array.isArray(data.history) ? data.history.filter(h => lessonById(h.lesson_id) && Number.isInteger(h.score) && Number.isInteger(h.total) && h.total > 0 && h.score >= 0 && h.score <= h.total && !Number.isNaN(Date.parse(h.created_at))) : [] };
+  } catch { return { credits: {}, days: [], history: [] }; }
+}
+function localGameKey() {
+  return demo ? DEMO_GAME_KEY : `pali-local-games-v1:${dashboard?.user?.id || session?.user?.id || 'this-device'}`;
+}
+function learningHistory() {
+  return [...dashboard.history, ...(dashboard.localHistory || [])].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+}
+function localProgress(data) {
+  const today = bangkokDay();
+  const d = new Date(today + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7);
+  const week = d.toISOString().slice(0, 10);
+  const entries = Object.entries(data.credits).filter(([, v]) => v === 10);
+  const creditedIds = new Set(entries.map(([key]) => key.slice(11)));
+  return { totalXP: entries.length * 10, weekXP: entries.filter(([key]) => key.slice(0, 10) >= week).length * 10, days: data.days, joined: false,
+    practicedLessons: grammarLessons.filter(l => l.questions.some(q => creditedIds.has(q.id))).map(l => l.id) };
 }
 async function loadGameProgress() {
-  if (demo) {
-    const data = demoGameData();
-    const today = bangkokDay();
-    const d = new Date(today + 'T12:00:00Z');
-    d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7);
-    const week = d.toISOString().slice(0, 10);
-    const entries = Object.entries(data.credits).filter(([, v]) => v === 10);
-    gameProgress = { totalXP: entries.length * 10, weekXP: entries.filter(([key]) => key.slice(0, 10) >= week).length * 10, days: data.days, joined: false };
-  } else {
+  const data = demoGameData(localGameKey());
+  if (demo) gameProgress = localProgress(data);
+  else {
     try { gameProgress = await request('/rest/v1/rpc/get_game_progress', { method: 'POST', data: {} }); }
-    catch { gameProgress = { unavailable: true }; }
+    catch { gameProgress = { ...localProgress(data), unavailable: true }; }
   }
 }
 async function loadBoard() {
@@ -141,7 +152,7 @@ async function handleGameAction(action) {
         // Fisher–Yates keeps practice order varied.
         for (let i = questions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questions[i], questions[j]] = [questions[j], questions[i]]; }
         const practice = createPractice(questions);
-        game = { lessonId, demo: true, storageKey: demo ? DEMO_GAME_KEY : `pali-local-games-v1:${dashboard.user.id || session?.user?.id || 'this-device'}`, practice, question: questions[0], step: 0, total: questions.length, initialTotal: questions.length, xp: 0, combo: 0, bestCombo: 0 };
+        game = { lessonId, demo: true, storageKey: localGameKey(), practice, question: questions[0], step: 0, total: questions.length, initialTotal: questions.length, xp: 0, combo: 0, bestCombo: 0 };
       } else {
         const run = await request('/rest/v1/rpc/start_game', { method: 'POST', data: { p_lesson_id: lessonId } });
         game = { ...run, lessonId, demo: false, xp: 0, combo: 0, bestCombo: 0 };
@@ -195,14 +206,15 @@ async function handleGameAction(action) {
         data.credits[key] = 10; return 10;
       });
       if (!data.days.includes(day)) data.days.push(day);
-      localStorage.setItem(game.storageKey, JSON.stringify(data));
       game.total = game.practice.queue.length;
       game.done = game.practice.step + 1 >= game.total;
       game.firstTryCorrect = game.practice.firstTryCorrect;
-      if (game.done && demo) {
-        dashboard.history.unshift({ lesson_id: game.lessonId, score: game.firstTryCorrect, total: game.initialTotal, created_at: new Date().toISOString() });
-        localStorage.setItem(DEMO_KEY, JSON.stringify(dashboard.history));
+      if (game.done) {
+        const attempt = { id: crypto.randomUUID(), lesson_id: game.lessonId, score: game.firstTryCorrect, total: game.initialTotal, created_at: new Date().toISOString(), local: true };
+        if (demo) { dashboard.history.unshift(attempt); localStorage.setItem(DEMO_KEY, JSON.stringify(dashboard.history)); }
+        else data.history.unshift(attempt);
       }
+      localStorage.setItem(game.storageKey, JSON.stringify(data));
     } else {
       result = await request('/rest/v1/rpc/answer_game', { method: 'POST', data: { p_token: game.token, p_step: game.step, p_answer: game.selected } });
       game.nextState = result; game.total = result.total; game.done = result.done; game.firstTryCorrect = result.firstTryCorrect;
@@ -229,6 +241,8 @@ async function loadDashboard() {
     ]);
     dashboard = { user: { id: profile[0]?.user_id, name: profile[0]?.display_name || 'ผู้เรียน' }, history, recommendation: recommend(history) };
   }
+  dashboard.localHistory = demo ? [] : demoGameData(localGameKey()).history;
+  dashboard.recommendation = recommend(learningHistory());
   await loadGameProgress();
 }
 app.addEventListener('click', async event => {
@@ -236,6 +250,16 @@ app.addEventListener('click', async event => {
   if (!target || target.disabled) return;
   const action = target.dataset.action;
   try {
+    if (action === 'board-retry') {
+      target.disabled = true;
+      const alias = app.querySelector('#board-alias')?.value || '';
+      const joined = app.querySelector('input[name=join]')?.checked || false;
+      await loadGameProgress(); await loadBoard(); render();
+      app.querySelector('#board-alias').value = alias;
+      app.querySelector('input[name=join]').checked = joined;
+      if (gameProgress?.unavailable) toast('ระบบอันดับยังไม่พร้อม ชื่อที่กรอกยังอยู่ กรุณาให้ผู้ดูแลเปิดระบบก่อน');
+      return;
+    }
     if (action.startsWith('game-')) { await handleGameAction(action); return; }
     if (action === 'google-login') {
       target.disabled = true;
@@ -266,7 +290,7 @@ app.addEventListener('click', async event => {
       catch { const range = document.createRange(); range.selectNodeContents(document.querySelector('#tutor-prompt')); const selection = window.getSelection(); selection.removeAllRanges(); selection.addRange(range); toast('เลือกข้อความแล้ว กรุณาคัดลอกด้วยเมนูของอุปกรณ์'); }
     }
     if (action === 'export') {
-      const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), mode: demo ? 'demo' : 'account', history: dashboard.history }, null, 2)], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), mode: demo ? 'demo' : 'account', history: learningHistory() }, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'pali-learning-history.json'; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
     }
   } catch (error) {
