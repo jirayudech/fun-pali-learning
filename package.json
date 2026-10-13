@@ -1,0 +1,12 @@
+{
+  "name": "fun-pali-learning",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "start": "node dev-server.js",
+    "dev": "node dev-server.js",
+    "test": "node --test test/*.test.js"
+  }
+}
