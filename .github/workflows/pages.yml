@@ -48,7 +48,7 @@ jobs:
       - name: Prepare static website
         run: |
           mkdir -p dist
-          cp index.html app.js oauth.js art.js grammar.js game-engine.js game-ui.js style.css config.js lessons.js favicon.svg dist/
+          cp index.html app.js oauth.js art.js pali-script.js grammar.js game-engine.js game-ui.js style.css config.js lessons.js favicon.svg dist/
           cp -r assets dist/assets
           touch dist/.nojekyll
       - uses: actions/configure-pages@v5
