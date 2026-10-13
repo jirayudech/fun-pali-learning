@@ -1,6 +1,7 @@
 import { config } from './config.js';
 import { lessons, recommend } from './lessons.js';
 import { paliMarkup, paliText } from './pali-script.js';
+import { selectPair } from './pairing.js';
 import { art, lessonArt } from './art.js';
 import { grammarLessons } from './grammar.js';
 import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js';
@@ -124,7 +125,8 @@ async function loadBoard() {
 }
 function resetGameSelection() {
   game.selected = game.question.kind === 'pair' ? Array(game.question.left.length).fill(null) : [];
-  game.activeLeft = 0;
+  game.activeLeft = null;
+  game.activeRight = null;
 }
 async function handleGameAction(action) {
   if (gameBusy) return;
@@ -164,15 +166,15 @@ async function handleGameAction(action) {
     return;
   }
   if (game.feedback) return;
-  if (action.startsWith('game-left:')) { game.activeLeft = index; render(); return; }
+  if (action.startsWith('game-left:')) {
+    if (game.question.kind === 'pair') Object.assign(game, selectPair(game, 'left', index, game.question.options.length));
+    render(); return;
+  }
   if (action.startsWith('game-pick:')) {
     if (index < 0 || index >= game.question.options.length) return;
     if (game.question.kind === 'build') { if (!game.selected.includes(index)) game.selected.push(index); }
     else if (game.question.kind === 'pair') {
-      const previous = game.selected.indexOf(index);
-      if (previous >= 0) game.selected[previous] = null;
-      game.selected[game.activeLeft] = index;
-      const next = game.selected.indexOf(null); if (next >= 0) game.activeLeft = next;
+      Object.assign(game, selectPair(game, 'right', index, game.question.options.length));
     } else game.selected = [index];
     render(); return;
   }
