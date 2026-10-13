@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { gameQuestions, grammarLessons } from '../grammar.js';
 import { createPractice, submitPractice, advancePractice, learningStreak, bangkokDay } from '../game-engine.js';
 test('all four game types have valid answer shapes', () => {
-  assert.equal(grammarLessons.length, 6);
-  assert.equal(gameQuestions.length, 30);
-  assert.equal(new Set(gameQuestions.map(q => q.id)).size, 30);
+  assert.equal(grammarLessons.length, 9);
+  assert.equal(gameQuestions.length, 45);
+  assert.equal(new Set(gameQuestions.map(q => q.id)).size, 45);
   assert.deepEqual(new Set(gameQuestions.map(q => q.kind)), new Set(['choose', 'gap', 'build', 'pair']));
   for (const q of gameQuestions) {
     assert.ok(q.answer.every(n => Number.isInteger(n) && n >= 0 && n < q.options.length));

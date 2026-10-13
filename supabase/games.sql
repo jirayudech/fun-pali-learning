@@ -1,7 +1,7 @@
 -- Apply AFTER schema.sql. Repeatable: preserves users, learning history and XP.
 begin;
 alter table public.attempts drop constraint if exists attempts_lesson_id_check;
-alter table public.attempts add constraint attempts_lesson_id_check check (lesson_id in ('sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review'));
+alter table public.attempts add constraint attempts_lesson_id_check check (lesson_id in ('sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review','masculine','dative','genitive'));
 alter table public.profiles add column if not exists board_alias text;
 alter table public.profiles add column if not exists leaderboard_opt_in boolean not null default false;
 
@@ -163,6 +163,31 @@ $$;
 revoke all on function public.get_leaderboard() from public,anon;
 grant execute on function public.get_leaderboard() to authenticated;
 
+create table if not exists public.lesson_completions (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  lesson_id text not null check(lesson_id in ('sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review','masculine','dative','genitive')),
+  source text not null default 'learner_report' check(source='learner_report'),
+  created_at timestamptz not null default now(),
+  primary key(user_id,lesson_id)
+);
+alter table public.lesson_completions enable row level security;
+revoke all on public.lesson_completions from public,anon,authenticated;
+grant select on public.lesson_completions to authenticated;
+drop policy if exists "Own reported completion" on public.lesson_completions;
+create policy "Own reported completion" on public.lesson_completions for select to authenticated using ((select auth.uid())=user_id);
+create or replace function public.mark_learned(p_lesson_ids text[])
+returns jsonb language plpgsql security definer set search_path='' as $$
+begin
+  if auth.uid() is null then raise exception 'กรุณาเข้าสู่ระบบ'; end if;
+  if p_lesson_ids is null or cardinality(p_lesson_ids)>12 or exists(select 1 from unnest(p_lesson_ids) l where l is null or l not in
+    ('sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review','masculine','dative','genitive')) then raise exception 'ไม่พบบทเรียน'; end if;
+  insert into public.lesson_completions(user_id,lesson_id) select auth.uid(),l from unnest(p_lesson_ids) l on conflict do nothing;
+  return jsonb_build_object('ok',true);
+end;
+$$;
+revoke all on function public.mark_learned(text[]) from public,anon;
+grant execute on function public.mark_learned(text[]) to authenticated;
+
 -- Original grammar question seed follows.
 insert into public.game_bank(id,lesson_id,data,answer,explanation) values
 ('noun-1','noun-roles','{"id":"noun-1","text":"Puriso dhammaṃ suṇāti. คำไหนเป็นผู้ฟัง?","options":["puriso","dhammaṃ","suṇāti"],"kind":"choose"}'::jsonb,ARRAY[0],'puriso เป็นประธาน: บุรุษเป็นผู้ฟัง'),
@@ -194,6 +219,21 @@ insert into public.game_bank(id,lesson_id,data,answer,explanation) values
 ('review-2','grammar-review','{"id":"review-2","text":"Purisā dhammaṃ ___ . บุรุษหลายคนฟังธรรม","options":["suṇāti","suṇanti","gacchāmi"],"kind":"gap"}'::jsonb,ARRAY[1],'ประธาน purisā หลายคนจึงใช้ suṇanti'),
 ('review-3','grammar-review','{"id":"review-3","text":"จับคู่คำกับบทบาทใน Puriso hatthena likhati.","left":["puriso","hatthena","likhati"],"options":["เครื่องมือ","กริยา","ประธาน"],"kind":"pair"}'::jsonb,ARRAY[2,0,1],'บุรุษเป็นประธาน มือเป็นเครื่องมือ และเขียนเป็นกริยา'),
 ('review-4','grammar-review','{"id":"review-4","text":"ประธานหลายคน ต้องมีกรรมหลายสิ่งเสมอไหม?","options":["ต้องเท่ากันเสมอ","ไม่จำเป็น","ประธานหลายคนไม่มีกรรม"],"kind":"choose"}'::jsonb,ARRAY[1],'จำนวนของกรรมไม่จำเป็นต้องตรงกับประธาน เช่นคนหลายคนฟังธรรม'),
-('review-5','grammar-review','{"id":"review-5","text":"เมื่อเจอประโยคใหม่ ควรทำอะไรก่อน?","options":["เดาจากตำแหน่งเท่านั้น","ดูรูปศัพท์และหน้าที่ แล้วพิจารณาบริบท","แปลทุกคำเป็นประธาน"],"kind":"choose"}'::jsonb,ARRAY[1],'รูปศัพท์ หน้าที่ และบริบทช่วยให้แปลได้แม่นกว่าการเดาจากตำแหน่ง')
+('review-5','grammar-review','{"id":"review-5","text":"เมื่อเจอประโยคใหม่ ควรทำอะไรก่อน?","options":["เดาจากตำแหน่งเท่านั้น","ดูรูปศัพท์และหน้าที่ แล้วพิจารณาบริบท","แปลทุกคำเป็นประธาน"],"kind":"choose"}'::jsonb,ARRAY[1],'รูปศัพท์ หน้าที่ และบริบทช่วยให้แปลได้แม่นกว่าการเดาจากตำแหน่ง'),
+('masculine-1','masculine','{"id":"masculine-1","text":"ปุงลิงค์ หมายถึงอะไร?","options":["รูปฐานลงท้ายเสียงอะ","เพศชายทางไวยากรณ์","หลายคน"],"kind":"choose"}'::jsonb,ARRAY[1],'ปุงลิงค์บอกเพศชายทางไวยากรณ์ ส่วนอการันต์บอกสระท้ายรูปฐาน'),
+('masculine-2','masculine','{"id":"masculine-2","text":"ปุริส เป็นอการันต์ปุงลิงค์ คำว่า “อการันต์” บอกอะไร?","options":["สระท้ายรูปฐาน","จำนวนคำ","ความยาวประโยค"],"kind":"choose"}'::jsonb,ARRAY[0],'อการันต์บอกว่ารูปฐานลงท้ายเสียงอะ ส่วนปุงลิงค์บอกเพศ'),
+('masculine-3','masculine','{"id":"masculine-3","text":"จับคู่ศัพท์ที่เรียนกับความหมาย","left":["อการันต์","ปุงลิงค์"],"options":["เพศชายทางไวยากรณ์","รูปฐานลงท้ายเสียงอะ"],"kind":"pair"}'::jsonb,ARRAY[1,0],'ดูคนละเรื่อง: อการันต์ดูสระท้ายรูปฐาน ปุงลิงค์ดูเพศทางไวยากรณ์'),
+('masculine-4','masculine','{"id":"masculine-4","text":"ธมฺม เป็นปุงลิงค์ หมายความว่าธรรมเป็นผู้ชายหรือไม่?","options":["เป็นผู้ชาย","ไม่ใช่ เป็นเพศของคำทางไวยากรณ์","เป็นหลายคน"],"kind":"choose"}'::jsonb,ARRAY[1],'เพศทางไวยากรณ์ของนามไม่ได้หมายถึงเพศของสิ่งที่คำเรียกเสมอไป'),
+('masculine-5','masculine','{"id":"masculine-5","text":"เรียงตามแบบประธาน–กรรม–กริยา: บุรุษฟังธรรม","options":["dhammaṃ","suṇāti","puriso"],"kind":"build"}'::jsonb,ARRAY[2,0,1],'ปุริส และ ธมฺม เป็นนามอการันต์ปุงลิงค์ ในประโยคใช้ ปุริโส เป็นประธาน ธมฺมํ เป็นกรรม'),
+('dative-1','dative','{"id":"dative-1","text":"จตุตถีในประโยคการให้ของบทนี้บอกอะไร?","options":["ผู้รับ","ผู้ให้เสมอ","จำนวนคน"],"kind":"choose"}'::jsonb,ARRAY[0],'ในตัวอย่างนี้จตุตถีบอกผู้รับ แปลว่าแก่'),
+('dative-2','dative','{"id":"dative-2","text":"Puriso buddhassa pupphaṃ deti. คำใดบอกผู้รับ?","options":["puriso","buddhassa","pupphaṃ"],"kind":"choose"}'::jsonb,ARRAY[1],'พุทฺธสฺส บอกผู้รับในประโยคนี้: แก่พระพุทธเจ้า'),
+('dative-3','dative','{"id":"dative-3","text":"Puriso ___ pupphaṃ deti. เลือกรูปที่บอก “แก่พระพุทธเจ้า”","options":["buddho","buddhassa","buddhaṃ"],"kind":"gap"}'::jsonb,ARRAY[1],'พุทฺธสฺส เป็นรูปจตุตถีเอกพจน์ในบริบทการให้'),
+('dative-4','dative','{"id":"dative-4","text":"เรียงตามแบบผู้ให้–ผู้รับ–สิ่งที่ให้–กริยา","options":["deti","pupphaṃ","puriso","buddhassa"],"kind":"build"}'::jsonb,ARRAY[2,3,1,0],'ปุริโส พุทฺธสฺส ปุปฺผํ เทติ เป็นตัวอย่างแต่งเพื่อเรียน ไม่ใช่ข้อความอ้างในคัมภีร์'),
+('dative-5','dative','{"id":"dative-5","text":"จับคู่คำกับบทบาทในประโยคการให้","left":["puriso","buddhassa","pupphaṃ"],"options":["สิ่งที่ให้","ผู้ให้","ผู้รับ"],"kind":"pair"}'::jsonb,ARRAY[1,2,0],'ประธานเป็นผู้ให้ จตุตถีเป็นผู้รับ และกรรมเป็นสิ่งที่ให้ในตัวอย่างนี้'),
+('genitive-1','genitive','{"id":"genitive-1","text":"ฉัฏฐีที่ฝึกในบทนี้มักแปลว่าอะไร?","options":["ของ","แก่ทุกครั้ง","หลายคน"],"kind":"choose"}'::jsonb,ARRAY[0],'ในบทนี้ฝึกฉัฏฐีที่บอกความเป็นเจ้าของหรือความเกี่ยวข้อง แปลว่าของ'),
+('genitive-2','genitive','{"id":"genitive-2","text":"Buddhassa dhammo. คำใดแปลว่า “ของพระพุทธเจ้า”?","options":["dhammo","buddhassa","ทั้งสองคำเป็นกริยา"],"kind":"choose"}'::jsonb,ARRAY[1],'พุทฺธสฺส บอกความเกี่ยวข้องกับ ธมฺโม ในกลุ่มคำนี้'),
+('genitive-3','genitive','{"id":"genitive-3","text":"จับคู่บริบทกับหน้าที่ของ พุทฺธสฺส","left":["ให้แก่พระพุทธเจ้า","ธรรมของพระพุทธเจ้า"],"options":["ฉัฏฐี","จตุตถี"],"kind":"pair"}'::jsonb,ARRAY[1,0],'แก่ผู้รับเป็นจตุตถี ส่วนของที่บอกความเกี่ยวข้องเป็นฉัฏฐี'),
+('genitive-4','genitive','{"id":"genitive-4","text":"เรียงตามแบบผู้เกี่ยวข้อง–สิ่งที่เกี่ยวข้อง: ธรรมของพระพุทธเจ้า","options":["dhammo","buddhassa"],"kind":"build"}'::jsonb,ARRAY[1,0],'พุทฺธสฺส ธมฺโม คือธรรมของพระพุทธเจ้า ตัวอย่างนี้เป็นกลุ่มคำ ไม่มีกริยาปรากฏ'),
+('genitive-5','genitive','{"id":"genitive-5","text":"เมื่อเจอคำลงท้าย -สฺส ควรเลือก “แก่” หรือ “ของ” อย่างไร?","options":["แปลแก่เสมอ","แปลของเสมอ","ดูความสัมพันธ์และบริบท"],"kind":"choose"}'::jsonb,ARRAY[2],'รูปเดียวใช้ได้มากกว่าหนึ่งวิภัตติในแบบนามนี้ การอ่านบริบทจึงจำเป็น')
 on conflict (id) do update set lesson_id=excluded.lesson_id,data=excluded.data,answer=excluded.answer,explanation=excluded.explanation;
 commit;

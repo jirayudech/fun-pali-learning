@@ -16,6 +16,7 @@ let session = null, demo = false, dashboard = null, view = 'home', authTab = 'lo
 let refreshPromise = null;
 let game = null, gameProgress = null, board = null, gameBusy = false;
 const DEMO_GAME_KEY = 'pali-demo-games-v1';
+const BASELINE_LESSONS = ['sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review'];
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lessonById = id => lessons.find(l => l.id === id);
 const date = value => new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -56,28 +57,28 @@ function shell(content) {
 function cards() {
   return `<div class="cards">${lessons.map((l, i) => {
     const stat = dashboard.recommendation.stats.find(s => s.id === l.id);
-    return `<article class="lesson-card"><img class="lesson-scene" src="${lessonArt(l.id)}" alt="" loading="lazy" width="400" height="240"><div class="eyebrow">บทที่ 0${i + 1}</div><h3>${l.title}</h3><p>${l.intro}</p><div class="card-meta"><span>${l.level} · ${l.minutes} นาที</span><span>${stat.attempts ? `ล่าสุด ${Math.round(stat.latestScore * 100)}%` : 'ยังไม่ได้ฝึก'}</span></div><progress class="progress" max="100" value="${Math.round((stat.latestScore || 0) * 100)}" aria-label="คะแนนล่าสุดของบทเรียน"></progress><div class="actions">${button(stat.attempts ? 'ทบทวนบทเรียน →' : 'เริ่มเรียน →', `lesson:${l.id}`, 'secondary full')}</div></article>`;
+    return `<article class="lesson-card"><img class="lesson-scene" src="${lessonArt(l.id)}" alt="" loading="lazy" width="400" height="240"><div class="eyebrow">บทที่ 0${i + 1}</div><h3>${l.title}</h3><p>${l.intro}</p><div class="card-meta"><span>${l.level} · ${l.minutes} นาที</span><span>${stat.attempts ? `ล่าสุด ${Math.round(stat.latestScore * 100)}%` : stat.reported ? 'เรียนแล้ว · ยังไม่มีคะแนน' : 'ยังไม่ได้ฝึก'}</span></div><progress class="progress" max="100" value="${Math.round((stat.latestScore || 0) * 100)}" aria-label="คะแนนล่าสุดของบทเรียน"></progress><div class="actions">${button(stat.learned ? 'ทบทวนบทเรียน →' : 'เริ่มเรียน →', `lesson:${l.id}`, 'secondary full')}</div></article>`;
   }).join('')}</div>`;
 }
 function home() {
   const { recommendation, user } = dashboard;
   const history = learningHistory();
   const recommended = lessonById(recommendation.lessonId);
-  const mastered = recommendation.stats.filter(s => s.latestScore >= 0.8).length;
+  const mastered = recommendation.stats.filter(s => s.learned).length;
   const average = history.length ? Math.round(history.reduce((n, h) => n + h.score / h.total, 0) / history.length * 100) : 0;
-  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่ทำได้ดี</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">คะแนนล่าสุดอย่างน้อย 80%</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
+  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่เรียนแล้ว</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">จากผลฝึกและการแจ้งว่าเรียนแล้ว</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
 }
 function render() {
   if (!dashboard) return renderAuth();
   if (view === 'home') return home();
-  if (view === 'games') return shell(gameLobby(gameProgress, learningHistory(), demo));
+  if (view === 'games') return shell(gameLobby(gameProgress, learningHistory(), demo, dashboard.reportedLessons || []));
   if (view === 'game') return shell(gameQuestion(game));
   if (view === 'game-result') return shell(gameResult(game));
   if (view === 'leaderboard') return shell(leaderboardView(board, gameProgress, demo));
   if (view === 'lessons') return shell(`<div class="heading"><div><div class="eyebrow">THE FIRST STEPS</div><h1>บทเรียนทั้งหมด</h1><p class="muted">อ่าน ทำแบบฝึกหัด แล้วทบทวนในจังหวะของคุณ</p></div></div>${cards()}`);
   if (view.startsWith('lesson:')) {
     const l = lessonById(view.split(':')[1]);
-    shell(`<div class="heading"><div><div class="eyebrow">${l.level} · ${l.minutes} นาที</div><h1>${l.title}</h1><p class="muted">${l.intro}</p></div></div><section class="lesson-intro-art"><img src="${lessonArt(l.id)}" alt="" width="400" height="240"><div><span class="eyebrow">เรียนรู้ทีละนิด</span><h2>อ่านให้เข้าใจ แล้วลองใช้จริง</h2><p>ค่อย ๆ สังเกตรูปคำและความหมาย<br>พร้อมแล้วไปฝึกท้ายบทกัน</p></div></section><article class="panel">${l.blocks.map(([title, text]) => `<section class="content-block"><h3>${title}</h3><p>${paliMarkup(text)}</p></section>`).join('')}</article><div class="actions">${button(grammarLessons.some(g => g.id === l.id) ? (!demo && gameProgress?.unavailable ? 'เล่นฝึกในเครื่อง →' : 'เล่นเกมฝึกบทนี้ →') : 'ลองทำแบบฝึกหัด →', `${grammarLessons.some(g => g.id === l.id) ? 'game-start' : 'quiz'}:${l.id}`)}${button('กลับไปบทเรียนทั้งหมด', 'nav:lessons', 'secondary')}</div>`);
+    shell(`<div class="heading"><div><div class="eyebrow">${l.level} · ${l.minutes} นาที</div><h1>${l.title}</h1><p class="muted">${l.intro}</p></div></div><section class="lesson-intro-art"><img src="${lessonArt(l.id)}" alt="" width="400" height="240"><div><span class="eyebrow">เรียนรู้ทีละนิด</span><h2>อ่านให้เข้าใจ แล้วลองใช้จริง</h2><p>ค่อย ๆ สังเกตรูปคำและความหมาย<br>พร้อมแล้วไปฝึกท้ายบทกัน</p></div></section><article class="panel">${l.blocks.map(([title, text]) => `<section class="content-block"><h3>${title}</h3><p>${paliMarkup(text)}</p></section>`).join('')}</article><div class="actions">${button(grammarLessons.some(g => g.id === l.id) ? (!demo && gameProgress?.unavailable ? 'เล่นฝึกในเครื่อง →' : 'เล่นเกมฝึกบทนี้ →') : 'ลองทำแบบฝึกหัด →', `${grammarLessons.some(g => g.id === l.id) ? 'game-start' : 'quiz'}:${l.id}`)}${button('ฉันเรียนบทนี้แล้ว', `learned:${l.id}`, 'secondary')}${button('กลับไปบทเรียนทั้งหมด', 'nav:lessons', 'secondary')}</div>`);
     return;
   }
   if (view === 'quiz') {
@@ -98,13 +99,13 @@ function render() {
 }
 function tutorPrompt() {
   const recommended = lessonById(dashboard.recommendation.lessonId);
-  return `ช่วยเป็นติวเตอร์ภาษาบาลีสำหรับผู้เริ่มต้น สอนเป็นภาษาไทยอย่างใจเย็น\nเป้าหมายหลัก: เตรียมสอบบาลีสนามหลวง วันที่ 3–4 มีนาคม 2570 ตามเป้าหมายที่ฉันกำหนด ระดับประโยค 1–2 เน้นไวยากรณ์พื้นฐาน การแยกรูปศัพท์ การสัมพันธ์หน้าที่คำ และการแปลบาลีเป็นไทย ประเมินพื้นฐานจากคำตอบก่อนเพิ่มความยาก อย่าอ้างว่าโจทย์แต่งเป็นข้อสอบจริง\nใช้บาลีอักษรไทยเป็นหลัก และกำกับอักษรโรมัน\nบทเรียนที่ควรฝึก: ${recommended.title}\nเหตุผล: ${dashboard.recommendation.reason}\n\nความก้าวหน้าล่าสุด:\n${dashboard.recommendation.stats.map(s => `${lessonById(s.id).title}: ${s.attempts ? `ฝึก ${s.attempts} ครั้ง คะแนนล่าสุด ${Math.round(s.latestScore * 100)}%` : 'ยังไม่ได้ฝึก'}`).join('\n')}\n\nเนื้อหาที่กำลังเรียน:\n${recommended.blocks.map(([h, t]) => `${h}: ${t}`).join('\n')}\n\nช่วยถามประเมินความเข้าใจทีละข้อ รอให้ฉันตอบก่อนเฉลย อธิบายรูปศัพท์และหน้าที่คำด้วยตัวอย่างง่าย ๆ แยกตัวอย่างแต่งเพื่อเรียนจากคำอ้างในคัมภีร์ ถ้าไม่แน่ใจให้บอกตรง ๆ และอย่าแต่งแหล่งอ้างอิงขึ้นเอง เริ่มจากคำถามสั้นหนึ่งข้อ`;
+  return `ช่วยเป็นติวเตอร์ภาษาบาลีสำหรับผู้เริ่มต้น สอนเป็นภาษาไทยอย่างใจเย็น\nเป้าหมายหลัก: เตรียมสอบบาลีสนามหลวง วันที่ 3–4 มีนาคม 2570 ตามเป้าหมายที่ฉันกำหนด ระดับประโยค 1–2 เน้นไวยากรณ์พื้นฐาน การแยกรูปศัพท์ การสัมพันธ์หน้าที่คำ และการแปลบาลีเป็นไทย ประเมินพื้นฐานจากคำตอบก่อนเพิ่มความยาก อย่าอ้างว่าโจทย์แต่งเป็นข้อสอบจริง\nใช้บาลีอักษรไทยเป็นหลัก และกำกับอักษรโรมัน\nบทเรียนที่ควรฝึก: ${recommended.title}\nเหตุผล: ${dashboard.recommendation.reason}\n\nความก้าวหน้าล่าสุด:\n${dashboard.recommendation.stats.map(s => `${lessonById(s.id).title}: ${s.attempts ? `ฝึก ${s.attempts} ครั้ง คะแนนล่าสุด ${Math.round(s.latestScore * 100)}%` : s.reported ? 'เรียนแล้วตามที่ฉันแจ้ง (ยังไม่มีคะแนนแบบฝึกหัด)' : 'ยังไม่ได้ฝึก'}`).join('\n')}\n\nเนื้อหาที่กำลังเรียน:\n${recommended.blocks.map(([h, t]) => `${h}: ${t}`).join('\n')}\n\nช่วยถามประเมินความเข้าใจทีละข้อ รอให้ฉันตอบก่อนเฉลย อธิบายรูปศัพท์และหน้าที่คำด้วยตัวอย่างง่าย ๆ แยกตัวอย่างแต่งเพื่อเรียนจากคำอ้างในคัมภีร์ ถ้าไม่แน่ใจให้บอกตรง ๆ และอย่าแต่งแหล่งอ้างอิงขึ้นเอง เริ่มจากคำถามสั้นหนึ่งข้อ`;
 }
 function demoGameData(storageKey = DEMO_GAME_KEY) {
   try {
     const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    return { credits: data.credits && typeof data.credits === 'object' ? data.credits : {}, days: Array.isArray(data.days) ? data.days : [], history: Array.isArray(data.history) ? data.history.filter(h => lessonById(h.lesson_id) && Number.isInteger(h.score) && Number.isInteger(h.total) && h.total > 0 && h.score >= 0 && h.score <= h.total && !Number.isNaN(Date.parse(h.created_at))) : [] };
-  } catch { return { credits: {}, days: [], history: [] }; }
+    return { credits: data.credits && typeof data.credits === 'object' ? data.credits : {}, days: Array.isArray(data.days) ? data.days : [], completedLessons: Array.isArray(data.completedLessons) ? data.completedLessons.filter(id => lessonById(id)) : [], history: Array.isArray(data.history) ? data.history.filter(h => lessonById(h.lesson_id) && Number.isInteger(h.score) && Number.isInteger(h.total) && h.total > 0 && h.score >= 0 && h.score <= h.total && !Number.isNaN(Date.parse(h.created_at))) : [] };
+  } catch { return { credits: {}, days: [], history: [], completedLessons: [] }; }
 }
 function localGameKey() {
   return demo ? DEMO_GAME_KEY : `pali-local-games-v1:${dashboard?.user?.id || session?.user?.id || 'this-device'}`;
@@ -216,7 +217,7 @@ async function handleGameAction(action) {
       }
       localStorage.setItem(game.storageKey, JSON.stringify(data));
       if (!demo) dashboard.localHistory = data.history;
-      dashboard.recommendation = recommend(learningHistory());
+      dashboard.recommendation = recommend(learningHistory(), dashboard.reportedLessons || []);
       if (demo || gameProgress?.unavailable) gameProgress = { ...localProgress(data), ...(!demo ? { unavailable: true } : {}) };
     } else {
       result = await request('/rest/v1/rpc/answer_game', { method: 'POST', data: { p_token: game.token, p_step: game.step, p_answer: game.selected } });
@@ -245,14 +246,37 @@ async function loadDashboard() {
     dashboard = { user: { id: profile[0]?.user_id, name: profile[0]?.display_name || 'ผู้เรียน' }, history, recommendation: recommend(history) };
   }
   dashboard.localHistory = demo ? [] : demoGameData(localGameKey()).history;
-  dashboard.recommendation = recommend(learningHistory());
+  dashboard.recommendation = recommend(learningHistory(), dashboard.reportedLessons || []);
   await loadGameProgress();
+  let serverCompletions = [];
+  if (!demo && !gameProgress?.unavailable) {
+    try { serverCompletions = await request('/rest/v1/lesson_completions?select=lesson_id'); } catch {}
+  }
+  dashboard.reportedLessons = [...new Set([...demoGameData(localGameKey()).completedLessons, ...serverCompletions.map(c => c.lesson_id)])];
+  dashboard.recommendation = recommend(learningHistory(), dashboard.reportedLessons);
+  if (sessionStorage.getItem('pali-restore-basics') === '1') {
+    sessionStorage.removeItem('pali-restore-basics');
+    await markLessonsLearned(BASELINE_LESSONS);
+  }
+}
+async function markLessonsLearned(ids) {
+  const data = demoGameData(localGameKey());
+  data.completedLessons = [...new Set([...data.completedLessons, ...ids])];
+  localStorage.setItem(localGameKey(), JSON.stringify(data));
+  dashboard.reportedLessons = [...new Set([...(dashboard.reportedLessons || []), ...ids])];
+  dashboard.recommendation = recommend(learningHistory(), dashboard.reportedLessons);
+  let synced = false;
+  if (!demo && !gameProgress?.unavailable) {
+    try { await request('/rest/v1/rpc/mark_learned', { method: 'POST', data: { p_lesson_ids: ids } }); synced = true; } catch {}
+  }
+  toast(synced ? 'บันทึกว่าเรียนแล้วในบัญชี โดยไม่เพิ่มคะแนนหรือ XP' : 'บันทึกว่าเรียนแล้วในเครื่องนี้ โดยไม่เพิ่มคะแนนหรือ XP');
 }
 app.addEventListener('click', async event => {
   const target = event.target.closest('[data-action]');
   if (!target || target.disabled) return;
   const action = target.dataset.action;
   try {
+    if (action.startsWith('learned:')) { await markLessonsLearned([action.split(':')[1]]); render(); return; }
     if (action === 'board-retry') {
       target.disabled = true;
       const alias = app.querySelector('#board-alias')?.value || '';
@@ -336,6 +360,12 @@ app.addEventListener('submit', async event => {
 async function initialize() {
   try {
     const params = new URLSearchParams(location.search);
+    if (params.get('learned') === 'basics') {
+      sessionStorage.setItem('pali-restore-basics', '1');
+      params.delete('learned');
+      const remaining = params.toString();
+      history.replaceState(null, '', location.pathname + (remaining ? '?' + remaining : '') + location.hash);
+    }
     const fragment = new URLSearchParams(location.hash.slice(1));
     const callbackError = params.get('error') || fragment.get('error');
     if (callbackError) {

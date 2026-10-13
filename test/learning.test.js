@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { lessons, publicLessons, recommend } from '../lessons.js';
+test('learner-reported completion advances to new content without invented scores or XP', () => {
+  const old = ['sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review'];
+  const result = recommend([], old);
+  assert.equal(result.lessonId, 'masculine');
+  assert.ok(result.stats.filter(s => old.includes(s.id)).every(s => s.learned && s.reported && s.attempts === 0 && s.latestScore === null));
+  assert.equal(recommend([]).lessonId, 'sounds');
+});
 test('new learners start with sounds', () => assert.equal(recommend([]).lessonId, 'sounds'));
 test('a weak latest score takes priority over unseen lessons', () => {
   assert.equal(recommend([{ lesson_id: 'sounds', score: 1, total: 3 }]).lessonId, 'sounds');

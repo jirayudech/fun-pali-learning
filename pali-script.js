@@ -6,6 +6,7 @@ export const paliSpellings = {
   'suṇāti': 'สุณาติ', 'suṇanti': 'สุณนฺติ', hattha: 'หตฺถ', hattho: 'หตฺโถ', 'hatthaṃ': 'หตฺถํ', hatthena: 'หตฺเถน', likhati: 'ลิขติ',
   gacchati: 'คจฺฉติ', gacchanti: 'คจฺฉนฺติ', 'gacchāmi': 'คจฺฉามิ', gacchasi: 'คจฺฉสิ', 'gacchāma': 'คจฺฉาม',
   'ahaṃ': 'อหํ', 'tvaṃ': 'ตฺวํ', so: 'โส', 'mayaṃ': 'มยํ', tumhe: 'ตุมฺเห', passati: 'ปสฺสติ', passanti: 'ปสฺสนฺติ',
+  buddhassa: 'พุทฺธสฺส', 'buddhaṃ': 'พุทฺธํ', 'pupphaṃ': 'ปุปฺผํ', deti: 'เทติ',
   a: 'อ', 'ā': 'อา', i: 'อิ', 'ī': 'อี', u: 'อุ', 'ū': 'อู', e: 'เอ', o: 'โอ', 'ṃ': 'ํ', 'ñ': 'ญ'
 };
 const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

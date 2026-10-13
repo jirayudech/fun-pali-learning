@@ -8,7 +8,7 @@ const files = ['index.html', 'app.js', 'oauth.js', 'art.js', 'pali-script.js', '
 http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   const file = pathname === '/' || pathname === '/fun-pali-learning/' ? 'index.html' : pathname.replace(/^\/fun-pali-learning\//, '').replace(/^\//, '');
-  const isArt = /^assets\/(guide|garden|trophy|sounds|words|sentences|noun-roles|cases|number|verbs|pronouns|grammar-review|community|cheer|thinking)(-pollinations)?\.(svg|png|jpg|webp)$/.test(file);
+  const isArt = /^assets\/(guide|garden|trophy|sounds|words|sentences|noun-roles|cases|number|verbs|pronouns|grammar-review|community|cheer|thinking|masculine|dative|genitive)(-pollinations)?\.(svg|png|jpg|webp)$/.test(file);
   if (!files.includes(file) && !isArt) { res.writeHead(404); res.end('Not found'); return; }
   try {
     const content = await readFile(resolve(root, file));

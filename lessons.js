@@ -49,14 +49,14 @@ export function publicLessons() {
   return lessons.map(({ questions, ...lesson }) => ({ ...lesson, questionCount: questions.length }));
 }
 
-export function recommend(history) {
+export function recommend(history, reported = []) {
   const stats = lessons.map(lesson => {
     const attempts = history.filter(h => h.lesson_id === lesson.id);
     const last = attempts[0];
-    return { id: lesson.id, attempts: attempts.length, latestScore: last ? last.score / last.total : null };
+    return { id: lesson.id, attempts: attempts.length, reported: reported.includes(lesson.id), learned: attempts.length > 0 || reported.includes(lesson.id), latestScore: last ? last.score / last.total : null };
   });
   const weak = stats.filter(s => s.latestScore !== null && s.latestScore < 0.8)
     .sort((a, b) => a.latestScore - b.latestScore)[0];
-  const next = weak || stats.find(s => s.attempts === 0) || [...stats].sort((a, b) => a.attempts - b.attempts)[0];
-  return { lessonId: next.id, reason: weak ? 'ทบทวนจุดที่ยังไม่แม่นก่อนก้าวต่อไป' : stats.some(s => s.attempts === 0) ? 'เริ่มบทถัดไปทีละขั้น ตามความก้าวหน้าของคุณ' : 'ฝึกซ้ำเพื่อให้จำได้คล่องขึ้น', stats };
+  const next = weak || stats.find(s => !s.learned) || [...stats].sort((a, b) => a.attempts - b.attempts)[0];
+  return { lessonId: next.id, reason: weak ? 'ทบทวนจุดที่ยังไม่แม่นก่อนก้าวต่อไป' : stats.some(s => !s.learned) ? 'เริ่มบทถัดไปทีละขั้น ตามความก้าวหน้าของคุณ' : 'ฝึกซ้ำเพื่อให้จำได้คล่องขึ้น', stats };
 }

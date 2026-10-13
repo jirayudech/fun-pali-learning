@@ -45,6 +45,16 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/games.sql
           psql -v ON_ERROR_STOP=1 -f supabase/games.sql
           psql -v ON_ERROR_STOP=1 -f test/games-database.sql
+          psql -v ON_ERROR_STOP=1 -f test/course-database.sql
+          if psql -v ON_ERROR_STOP=1 -f supabase/update-course.sql > recovery-check.log 2>&1; then
+            echo "Recovery must refuse an ambiguous account list"
+            exit 1
+          fi
+          rg 'ต้องมีผู้ใช้เพียงบัญชีเดียว' recovery-check.log
+          psql -v ON_ERROR_STOP=1 -c "DELETE FROM auth.users; INSERT INTO auth.users(id) VALUES ('00000000-0000-4000-8000-000000000001');"
+          psql -v ON_ERROR_STOP=1 -f supabase/update-course.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/update-course.sql
+          psql -v ON_ERROR_STOP=1 -f test/recovered-course.sql
       - name: Prepare static website
         run: |
           mkdir -p dist
