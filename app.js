@@ -75,7 +75,7 @@ function render() {
   if (view === 'lessons') return shell(`<div class="heading"><div><div class="eyebrow">THE FIRST STEPS</div><h1>บทเรียนทั้งหมด</h1><p class="muted">อ่าน ทำแบบฝึกหัด แล้วทบทวนในจังหวะของคุณ</p></div></div>${cards()}`);
   if (view.startsWith('lesson:')) {
     const l = lessonById(view.split(':')[1]);
-    shell(`<div class="heading"><div><div class="eyebrow">${l.level} · ${l.minutes} นาที</div><h1>${l.title}</h1><p class="muted">${l.intro}</p></div></div><section class="lesson-intro-art"><img src="${lessonArt(l.id)}" alt="" width="400" height="240"><div><span class="eyebrow">เรียนรู้ทีละนิด</span><h2>อ่านให้เข้าใจ แล้วลองใช้จริง</h2><p>ค่อย ๆ สังเกตรูปคำและความหมาย<br>พร้อมแล้วไปฝึกท้ายบทกัน</p></div></section><article class="panel">${l.blocks.map(([title, text]) => `<section class="content-block"><h3>${title}</h3><p>${paliMarkup(text)}</p></section>`).join('')}</article><div class="actions">${button(grammarLessons.some(g => g.id === l.id) ? 'เล่นเกมฝึกบทนี้ →' : 'ลองทำแบบฝึกหัด →', `${grammarLessons.some(g => g.id === l.id) ? 'game-start' : 'quiz'}:${l.id}`)}${button('กลับไปบทเรียนทั้งหมด', 'nav:lessons', 'secondary')}</div>`);
+    shell(`<div class="heading"><div><div class="eyebrow">${l.level} · ${l.minutes} นาที</div><h1>${l.title}</h1><p class="muted">${l.intro}</p></div></div><section class="lesson-intro-art"><img src="${lessonArt(l.id)}" alt="" width="400" height="240"><div><span class="eyebrow">เรียนรู้ทีละนิด</span><h2>อ่านให้เข้าใจ แล้วลองใช้จริง</h2><p>ค่อย ๆ สังเกตรูปคำและความหมาย<br>พร้อมแล้วไปฝึกท้ายบทกัน</p></div></section><article class="panel">${l.blocks.map(([title, text]) => `<section class="content-block"><h3>${title}</h3><p>${paliMarkup(text)}</p></section>`).join('')}</article><div class="actions">${button(grammarLessons.some(g => g.id === l.id) ? (!demo && gameProgress?.unavailable ? 'เล่นฝึกในเครื่อง →' : 'เล่นเกมฝึกบทนี้ →') : 'ลองทำแบบฝึกหัด →', `${grammarLessons.some(g => g.id === l.id) ? 'game-start' : 'quiz'}:${l.id}`)}${button('กลับไปบทเรียนทั้งหมด', 'nav:lessons', 'secondary')}</div>`);
     return;
   }
   if (view === 'quiz') {
@@ -98,9 +98,9 @@ function tutorPrompt() {
   const recommended = lessonById(dashboard.recommendation.lessonId);
   return `ช่วยเป็นติวเตอร์ภาษาบาลีสำหรับผู้เริ่มต้น สอนเป็นภาษาไทยอย่างใจเย็น\nเป้าหมายหลัก: เตรียมสอบบาลีสนามหลวง วันที่ 3–4 มีนาคม 2570 ตามเป้าหมายที่ฉันกำหนด ระดับประโยค 1–2 เน้นไวยากรณ์พื้นฐาน การแยกรูปศัพท์ การสัมพันธ์หน้าที่คำ และการแปลบาลีเป็นไทย ประเมินพื้นฐานจากคำตอบก่อนเพิ่มความยาก อย่าอ้างว่าโจทย์แต่งเป็นข้อสอบจริง\nใช้บาลีอักษรไทยเป็นหลัก และกำกับอักษรโรมัน\nบทเรียนที่ควรฝึก: ${recommended.title}\nเหตุผล: ${dashboard.recommendation.reason}\n\nความก้าวหน้าล่าสุด:\n${dashboard.recommendation.stats.map(s => `${lessonById(s.id).title}: ${s.attempts ? `ฝึก ${s.attempts} ครั้ง คะแนนล่าสุด ${Math.round(s.latestScore * 100)}%` : 'ยังไม่ได้ฝึก'}`).join('\n')}\n\nเนื้อหาที่กำลังเรียน:\n${recommended.blocks.map(([h, t]) => `${h}: ${t}`).join('\n')}\n\nช่วยถามประเมินความเข้าใจทีละข้อ รอให้ฉันตอบก่อนเฉลย อธิบายรูปศัพท์และหน้าที่คำด้วยตัวอย่างง่าย ๆ แยกตัวอย่างแต่งเพื่อเรียนจากคำอ้างในคัมภีร์ ถ้าไม่แน่ใจให้บอกตรง ๆ และอย่าแต่งแหล่งอ้างอิงขึ้นเอง เริ่มจากคำถามสั้นหนึ่งข้อ`;
 }
-function demoGameData() {
+function demoGameData(storageKey = DEMO_GAME_KEY) {
   try {
-    const data = JSON.parse(localStorage.getItem(DEMO_GAME_KEY) || '{}');
+    const data = JSON.parse(localStorage.getItem(storageKey) || '{}');
     return { credits: data.credits && typeof data.credits === 'object' ? data.credits : {}, days: Array.isArray(data.days) ? data.days : [] };
   } catch { return { credits: {}, days: [] }; }
 }
@@ -129,16 +129,17 @@ function resetGameSelection() {
 async function handleGameAction(action) {
   if (gameBusy) return;
   if (action.startsWith('game-start:')) {
-    if (!demo && gameProgress?.unavailable) throw new Error('เกมออนไลน์ยังไม่พร้อมในตอนนี้ กรุณาลองใหม่ภายหลัง หรือเล่นในโหมดทดลอง');
     gameBusy = true;
     try {
       const lessonId = action.split(':')[1];
-      if (demo) {
+      if (!demo && gameProgress?.unavailable) await loadGameProgress();
+      const localPractice = demo || Boolean(gameProgress?.unavailable);
+      if (localPractice) {
         const questions = [...grammarLessons.find(l => l.id === lessonId).questions];
         // Fisher–Yates keeps practice order varied.
         for (let i = questions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questions[i], questions[j]] = [questions[j], questions[i]]; }
         const practice = createPractice(questions);
-        game = { lessonId, demo: true, practice, question: questions[0], step: 0, total: questions.length, initialTotal: questions.length, xp: 0, combo: 0, bestCombo: 0 };
+        game = { lessonId, demo: true, storageKey: demo ? DEMO_GAME_KEY : `pali-local-games-v1:${dashboard.user.id || session?.user?.id || 'this-device'}`, practice, question: questions[0], step: 0, total: questions.length, initialTotal: questions.length, xp: 0, combo: 0, bestCombo: 0 };
       } else {
         const run = await request('/rest/v1/rpc/start_game', { method: 'POST', data: { p_lesson_id: lessonId } });
         game = { ...run, lessonId, demo: false, xp: 0, combo: 0, bestCombo: 0 };
@@ -154,7 +155,7 @@ async function handleGameAction(action) {
     try {
       if (game.done) { await loadDashboard(); view = 'game-result'; }
       else {
-        if (demo) { advancePractice(game.practice); game.step = game.practice.step; game.question = game.practice.queue[game.step]; }
+        if (game.demo) { advancePractice(game.practice); game.step = game.practice.step; game.question = game.practice.queue[game.step]; }
         else { game.step = game.nextState.step; game.question = game.nextState.nextQuestion; }
         game.feedback = null; resetGameSelection();
       }
@@ -183,8 +184,8 @@ async function handleGameAction(action) {
   if (checkButton) checkButton.disabled = true;
   try {
     let result;
-    if (demo) {
-      const data = demoGameData();
+    if (game.demo) {
+      const data = demoGameData(game.storageKey);
       const day = bangkokDay();
       result = submitPractice(game.practice, game.selected, q => {
         const key = `${day}:${q.id}`;
@@ -192,11 +193,11 @@ async function handleGameAction(action) {
         data.credits[key] = 10; return 10;
       });
       if (!data.days.includes(day)) data.days.push(day);
-      localStorage.setItem(DEMO_GAME_KEY, JSON.stringify(data));
+      localStorage.setItem(game.storageKey, JSON.stringify(data));
       game.total = game.practice.queue.length;
       game.done = game.practice.step + 1 >= game.total;
       game.firstTryCorrect = game.practice.firstTryCorrect;
-      if (game.done) {
+      if (game.done && demo) {
         dashboard.history.unshift({ lesson_id: game.lessonId, score: game.firstTryCorrect, total: game.initialTotal, created_at: new Date().toISOString() });
         localStorage.setItem(DEMO_KEY, JSON.stringify(dashboard.history));
       }
@@ -221,10 +222,10 @@ async function loadDashboard() {
     dashboard = { user: { name: 'เพื่อนผู้เรียน' }, history, recommendation: recommend(history) };
   } else {
     const [profile, history] = await Promise.all([
-      request('/rest/v1/profiles?select=display_name&limit=1'),
+      request('/rest/v1/profiles?select=user_id,display_name&limit=1'),
       request('/rest/v1/attempts?select=id,lesson_id,score,total,created_at&order=created_at.desc&limit=1000')
     ]);
-    dashboard = { user: { name: profile[0]?.display_name || 'ผู้เรียน' }, history, recommendation: recommend(history) };
+    dashboard = { user: { id: profile[0]?.user_id, name: profile[0]?.display_name || 'ผู้เรียน' }, history, recommendation: recommend(history) };
   }
   await loadGameProgress();
 }
