@@ -215,6 +215,9 @@ async function handleGameAction(action) {
         else data.history.unshift(attempt);
       }
       localStorage.setItem(game.storageKey, JSON.stringify(data));
+      if (!demo) dashboard.localHistory = data.history;
+      dashboard.recommendation = recommend(learningHistory());
+      if (demo || gameProgress?.unavailable) gameProgress = { ...localProgress(data), ...(!demo ? { unavailable: true } : {}) };
     } else {
       result = await request('/rest/v1/rpc/answer_game', { method: 'POST', data: { p_token: game.token, p_step: game.step, p_answer: game.selected } });
       game.nextState = result; game.total = result.total; game.done = result.done; game.firstTryCorrect = result.firstTryCorrect;
