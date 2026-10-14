@@ -1,15 +1,15 @@
-import { config } from './config.js?v=20261014-course2';
-import { lessons, recommend } from './lessons.js?v=20261014-course2';
-import { paliMarkup, paliText } from './pali-script.js?v=20261014-course2';
-import { selectPair } from './pairing.js?v=20261014-course2';
-import { art, lessonArt } from './art.js?v=20261014-course2';
-import { grammarLessons } from './grammar.js?v=20261014-course2';
-import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js?v=20261014-course2';
-import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js?v=20261014-course2';
-import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js?v=20261014-course2';
-import { createChantController } from './chant-ui.js?v=20261014-course2';
-import { daysToKathina } from './chant-engine.js?v=20261014-course2';
-import { createExamController } from './exam-ui.js?v=20261014-course2';
+import { config } from './config.js?v=20261014-voice3';
+import { lessons, recommend } from './lessons.js?v=20261014-voice3';
+import { paliMarkup, paliText } from './pali-script.js?v=20261014-voice3';
+import { selectPair } from './pairing.js?v=20261014-voice3';
+import { art, lessonArt } from './art.js?v=20261014-voice3';
+import { grammarLessons } from './grammar.js?v=20261014-voice3';
+import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js?v=20261014-voice3';
+import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js?v=20261014-voice3';
+import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js?v=20261014-voice3';
+import { createChantController } from './chant-ui.js?v=20261014-voice3';
+import { daysToKathina } from './chant-engine.js?v=20261014-voice3';
+import { createExamController } from './exam-ui.js?v=20261014-voice3';
 
 const app = document.querySelector('#app');
 const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl) && Boolean(config.supabasePublishableKey);

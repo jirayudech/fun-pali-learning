@@ -1,7 +1,7 @@
-import { examArchive, archiveMetadata } from './exam-archive.js?v=20261014-course2';
-import { examTopics, examQuestion, createExam, gradeExam, secondsRemaining, validateExamData } from './exam-engine.js?v=20261014-course2';
-import { chantRoman } from './chant-engine.js?v=20261014-course2';
-import { paliMarkup } from './pali-script.js?v=20261014-course2';
+import { examArchive, archiveMetadata } from './exam-archive.js?v=20261014-voice3';
+import { examTopics, examQuestion, createExam, gradeExam, secondsRemaining, validateExamData } from './exam-engine.js?v=20261014-voice3';
+import { chantRoman } from './chant-engine.js?v=20261014-voice3';
+import { paliMarkup } from './pali-script.js?v=20261014-voice3';
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const btn=(label,action,secondary=false,disabled=false)=>`<button type="button" class="button ${secondary?'secondary':''}" data-action="exam-${action}" ${disabled?'disabled':''}>${label}</button>`;
 const link=(label,url)=>`<a class="button secondary" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`;

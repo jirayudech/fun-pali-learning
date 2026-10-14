@@ -1,16 +1,18 @@
-import { paliMarkup } from './pali-script.js?v=20261014-course2';
-import { pairsComplete } from './pairing.js?v=20261014-course2';
-import { grammarLessons } from './grammar.js?v=20261014-course2';
-import { art, lessonArt, moodArt } from './art.js?v=20261014-course2';
-import { learningStreak } from './game-engine.js?v=20261014-course2';
+import { paliMarkup } from './pali-script.js?v=20261014-voice3';
+import { pairsComplete } from './pairing.js?v=20261014-voice3';
+import { grammarLessons } from './grammar.js?v=20261014-voice3';
+import { art, lessonArt, moodArt } from './art.js?v=20261014-voice3';
+import { learningStreak } from './game-engine.js?v=20261014-voice3';
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const btn = (label, action, disabled = false, style = '') => `<button class="button ${style}" data-action="${action}" ${disabled ? 'disabled' : ''}>${label}</button>`;
 export function termTip(question) {
+  if (question.id.startsWith('passive-')) return '<aside class="term-tip"><span class="eyebrow">จำจากบทบาทของประธาน</span><h3>ประธานเป็นผู้กระทำ หรือถูกกระทำ?</h3><p>ประธานเป็นผู้กระทำ → กัตตุวาจก (active voice)<br>ประธานถูกกระทำ → กัมมวาจก (passive voice)</p><small>บทนี้ฝึกสองแบบก่อน แล้วค่อยเรียนวาจกแบบอื่น</small></aside>';
+  if (question.id.startsWith('verb-parts-')) return '<aside class="term-tip"><span class="eyebrow">เริ่มจากคำที่เข้าใจ</span><h3>อาขยาต = คำกริยาแบบหนึ่งในบาลี</h3><p>“เด็กกินผลไม้” → คำกริยาคือ “กิน”<br>ขาทติ (khādati) แปลว่า กิน</p><small>ธาตุบอกความหมายหลัก · ปัจจัยช่วยประกอบรูป · วิภัตติบอกว่ารูปนี้กล่าวถึงใคร</small></aside>';
   const tips = { masculine: ['ปุงลิงค์', 'เพศชายทางไวยากรณ์', 'เช่น ปุริส และ ธมฺม เป็นปุงลิงค์ เพศของคำไม่จำเป็นต้องตรงกับเพศของสิ่งที่คำเรียก'], dative: ['จตุตถี', 'ผู้รับในประโยคการให้', 'ในบทนี้แปลว่า “แก่” เช่น ให้แก่พระพุทธเจ้า ฝึกความหมายนี้ก่อน'], genitive: ['ฉัฏฐี', 'ความเป็นเจ้าของหรือความเกี่ยวข้อง', 'ในบทนี้แปลว่า “ของ” เช่น ธรรมของพระพุทธเจ้า'] };
   const tip = tips[question.id.split('-')[0]];
   if (tip) return `<aside class="term-tip"><span class="eyebrow">ศัพท์สอบใหม่ · ครั้งละหนึ่งคำ</span><h3>${tip[0]} = ${tip[1]}</h3><p>${tip[2]}</p></aside>`;
   if (question.id !== 'noun-5' && !/a-stem|อการันต์/.test(`${question.text} ${question.options.join(' ')}`)) return '';
-  return `<aside class="term-tip"><span class="eyebrow">ศัพท์สอบใหม่ · ครั้งละหนึ่งคำ</span><h3>อการันต์ = รูปฐานลงท้ายเสียงอะ</h3><p>เช่น <b>ปุริส</b> (purisa) = บุรุษ<br>ดูที่รูปฐาน ก่อนเปลี่ยนเป็น <b>ปุริโส</b> หรือ <b>ปุริสํ</b> ในประโยค</p><small>รอบนี้จำคำเดียวก่อน แล้วลองเลือกคำตอบด้านล่าง</small></aside>`;
+  return `<aside class="term-tip"><span class="eyebrow">ศัพท์สอบใหม่ · ครั้งละหนึ่งคำ</span><h3>อการันต์ = รูปฐานลงท้ายเสียงอะ</h3><p>เช่น <b>ปุริส</b> (purisa) = ผู้ชาย<br>ดูที่รูปฐาน ก่อนเปลี่ยนเป็น <b>ปุริโส</b> หรือ <b>ปุริสํ</b> ในประโยค</p><small>รอบนี้จำคำเดียวก่อน แล้วลองเลือกคำตอบด้านล่าง</small></aside>`;
 }
 export function gameLobby(progress, history, demo, reported = []) {
   return `<div class="heading"><div><div class="eyebrow">PLAY · REMEMBER · REPEAT</div><h1>สนามฝึกไวยากรณ์</h1><p class="muted">ด่านละ 5 ข้อ · ตอบแล้วรู้ผลทันที · ข้อที่พลาดจะกลับมาให้ทวน</p></div><span class="badge">${demo ? 'ฝึกในเครื่อง' : 'เส้นทางของคุณ'}</span></div>
