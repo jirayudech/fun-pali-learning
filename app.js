@@ -1,14 +1,15 @@
-import { config } from './config.js';
-import { lessons, recommend } from './lessons.js';
-import { paliMarkup, paliText } from './pali-script.js';
-import { selectPair } from './pairing.js';
-import { art, lessonArt } from './art.js';
-import { grammarLessons } from './grammar.js';
-import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js';
-import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js';
-import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js';
-import { createChantController } from './chant-ui.js';
-import { daysToKathina } from './chant-engine.js';
+import { config } from './config.js?v=20261014-course2';
+import { lessons, recommend } from './lessons.js?v=20261014-course2';
+import { paliMarkup, paliText } from './pali-script.js?v=20261014-course2';
+import { selectPair } from './pairing.js?v=20261014-course2';
+import { art, lessonArt } from './art.js?v=20261014-course2';
+import { grammarLessons } from './grammar.js?v=20261014-course2';
+import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js?v=20261014-course2';
+import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js?v=20261014-course2';
+import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js?v=20261014-course2';
+import { createChantController } from './chant-ui.js?v=20261014-course2';
+import { daysToKathina } from './chant-engine.js?v=20261014-course2';
+import { createExamController } from './exam-ui.js?v=20261014-course2';
 
 const app = document.querySelector('#app');
 const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl) && Boolean(config.supabasePublishableKey);
@@ -20,6 +21,7 @@ let game = null, gameProgress = null, board = null, gameBusy = false;
 const DEMO_GAME_KEY = 'pali-demo-games-v1';
 const BASELINE_LESSONS = ['sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review'];
 const chants = createChantController({ storageKey: () => `pali-chants-v1:${demo ? 'demo' : dashboard?.user?.id || session?.user?.id || 'this-device'}`, show: shell, notify: toast });
+const exams = createExamController({ storageKey: () => `pali-exams-v1:${demo ? 'demo' : dashboard?.user?.id || session?.user?.id || 'this-device'}`, show: shell, notify: toast });
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lessonById = id => lessons.find(l => l.id === id);
 const date = value => new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -55,7 +57,13 @@ function renderAuth(message = '') {
 function shell(content) {
   const name = dashboard.user.name;
   const active = view === 'game' || view === 'game-result' ? 'games' : view.startsWith('lesson:') || view === 'quiz' || view === 'result' ? 'lessons' : view;
-  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['chants', '♫', 'ซ้อมสวดกฐิน'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['games', '⚡', 'เกมไวยากรณ์'], ['leaderboard', '♜', 'อันดับประจำสัปดาห์'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
+  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['chants', '♫', 'ซ้อมสวดกฐิน'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['exams', '✎', 'ซ้อมสอบประโยค 1–2'], ['games', '⚡', 'เกมไวยากรณ์'], ['leaderboard', '♜', 'อันดับประจำสัปดาห์'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
+  const nav = app.querySelector('.nav'), activeNav = nav?.querySelector('.active');
+  if (nav && activeNav && nav.scrollWidth > nav.clientWidth) {
+    const current = activeNav.getBoundingClientRect(), bounds = nav.getBoundingClientRect();
+    nav.scrollLeft += current.left - bounds.left - (nav.clientWidth - current.width) / 2;
+  }
+
 }
 function cards() {
   return `<div class="cards">${lessons.map((l, i) => {
@@ -69,11 +77,12 @@ function home() {
   const recommended = lessonById(recommendation.lessonId);
   const mastered = recommendation.stats.filter(s => s.learned).length;
   const average = history.length ? Math.round(history.reduce((n, h) => n + h.score / h.total, 0) / history.length * 100) : 0;
-  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="bottom-note chant-home"><img src="./assets/kathina.svg" alt="" width="140" height="90"><div><span class="badge">เร่งด่วน · ๑ พ.ย. ๒๕๖๙</span><h2>ซ้อมสวดกฐิน · อีก ${daysToKathina()} วัน</h2><p>บทองค์ที่ ๓ และญัตติทุติยกรรมวาจา · เข้าใจความหมาย จำทีละวรรค</p></div>${button('ไปซ้อมบทสวด →', 'nav:chants')}</section><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่เรียนแล้ว</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">จากผลฝึกและการแจ้งว่าเรียนแล้ว</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
+  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="bottom-note chant-home"><img src="./assets/kathina.svg" alt="" width="140" height="90"><div><span class="badge">เร่งด่วน · ๑ พ.ย. ๒๕๖๙</span><h2>ซ้อมสวดกฐิน · อีก ${daysToKathina()} วัน</h2><p>บทองค์ที่ ๓ และญัตติทุติยกรรมวาจา · เข้าใจความหมาย จำทีละวรรค</p></div>${button('ไปซ้อมบทสวด →', 'nav:chants')}</section><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่เรียนแล้ว</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">จากผลฝึกและการแจ้งว่าเรียนแล้ว</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><img src="./assets/exam.svg" alt="" width="130" height="90"><div><h3>ซ้อมสอบประโยค 1–2</h3><p>วัดพื้นฐาน เขียนตอบ ฝึกแปล และข้อสอบจริงคัดข้อความย้อนหลังสิบปี</p></div>${button('เข้าห้องซ้อมสอบ →', 'nav:exams')}</section><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
 }
 function render() {
   if (!dashboard) return renderAuth();
   if (view === 'chants') return chants.render();
+  if (view === 'exams') return exams.render();
   if (view === 'home') return home();
   if (view === 'games') return shell(gameLobby(gameProgress, learningHistory(), demo, dashboard.reportedLessons || []));
   if (view === 'game') return shell(gameQuestion(game));
@@ -144,6 +153,12 @@ function resetGameSelection() {
   game.activeLeft = null;
   game.activeRight = null;
 }
+function localGame(lessonId) {
+  const questions = [...grammarLessons.find(l => l.id === lessonId).questions];
+  for (let i = questions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questions[i], questions[j]] = [questions[j], questions[i]]; }
+  const practice = createPractice(questions);
+  return { lessonId, demo: true, storageKey: localGameKey(), practice, question: questions[0], step: 0, total: questions.length, initialTotal: questions.length, xp: 0, combo: 0, bestCombo: 0 };
+}
 async function handleGameAction(action) {
   if (gameBusy) return;
   if (action.startsWith('game-start:')) {
@@ -153,14 +168,16 @@ async function handleGameAction(action) {
       if (!demo && gameProgress?.unavailable) await loadGameProgress();
       const localPractice = demo || Boolean(gameProgress?.unavailable);
       if (localPractice) {
-        const questions = [...grammarLessons.find(l => l.id === lessonId).questions];
-        // Fisher–Yates keeps practice order varied.
-        for (let i = questions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [questions[i], questions[j]] = [questions[j], questions[i]]; }
-        const practice = createPractice(questions);
-        game = { lessonId, demo: true, storageKey: localGameKey(), practice, question: questions[0], step: 0, total: questions.length, initialTotal: questions.length, xp: 0, combo: 0, bestCombo: 0 };
+        game = localGame(lessonId);
       } else {
-        const run = await request('/rest/v1/rpc/start_game', { method: 'POST', data: { p_lesson_id: lessonId } });
-        game = { ...run, lessonId, demo: false, xp: 0, combo: 0, bestCombo: 0 };
+        try {
+          const run = await request('/rest/v1/rpc/start_game', { method: 'POST', data: { p_lesson_id: lessonId } });
+          game = { ...run, lessonId, demo: false, xp: 0, combo: 0, bestCombo: 0 };
+        } catch (error) {
+          if (!session || lessonById(lessonId)?.level !== 'ประโยค 1–2') throw error;
+          game = localGame(lessonId);
+          toast('ชุดออนไลน์ของบทใหม่ยังไม่พร้อม เริ่มฝึกและเก็บคะแนนในเครื่องนี้ได้');
+        }
       }
       resetGameSelection(); view = 'game'; render(); window.scrollTo(0, 0);
     } finally { gameBusy = false; }
@@ -280,6 +297,8 @@ app.addEventListener('click', async event => {
   if (!target || target.disabled) return;
   const action = target.dataset.action;
   try {
+    if (view === 'exams' && !action.startsWith('exam-')) exams.leave();
+    if (action.startsWith('exam-')) { await exams.action(action); return; }
     if (action.startsWith('chant-')) { await chants.action(action); return; }
     if (action.startsWith('learned:')) { await markLessonsLearned([action.split(':')[1]]); render(); return; }
     if (action === 'board-retry') {
@@ -306,6 +325,7 @@ app.addEventListener('click', async event => {
     if (action.endsWith('-tab')) { authTab = action === 'login-tab' ? 'login' : 'register'; return renderAuth(); }
     if (action === 'demo') { demo = true; view = 'home'; await loadDashboard(); return render(); }
     if (action === 'logout') {
+      exams.leave();
       chants.leave();
       if (!demo) await request('/auth/v1/logout', { method: 'POST', data: {} });
       saveSession(null); demo = false; dashboard = null; quiz = null; return renderAuth();
@@ -334,6 +354,12 @@ app.addEventListener('click', async event => {
 app.addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target;
+  if (form.id.startsWith('exam-')) {
+    const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
+    try { await exams.submit(form); } catch (error) { form.querySelector('.error').textContent = error.message; }
+    finally { if (submit.isConnected) submit.disabled = false; }
+    return;
+  }
   if (form.id.startsWith('chant-')) {
     const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
     try { await chants.submit(form); } catch (error) { form.querySelector('.error').textContent = error.message; }
@@ -370,10 +396,15 @@ app.addEventListener('submit', async event => {
   } catch (error) { errorEl.textContent = error.message; } finally { if (submit.isConnected) submit.disabled = false; }
 });
 app.addEventListener('change', async event => {
+  if (event.target.id.startsWith('exam-') || event.target.matches('[data-exam-answer],[data-exam-rubric]')) {
+    try { await exams.change(event); } catch (error) { toast(error.message); }
+  }
   if (event.target.id.startsWith('chant-')) {
     try { await chants.change(event); } catch (error) { toast(error.message); }
   }
 });
+app.addEventListener('input', event => { try { exams.input(event); } catch (error) { toast(error.message); } });
+window.addEventListener('pagehide', () => { try { exams.leave(); } catch {} });
 async function initialize() {
   try {
     const params = new URLSearchParams(location.search);

@@ -1,8 +1,8 @@
-import { paliMarkup } from './pali-script.js';
-import { pairsComplete } from './pairing.js';
-import { grammarLessons } from './grammar.js';
-import { art, lessonArt, moodArt } from './art.js';
-import { learningStreak } from './game-engine.js';
+import { paliMarkup } from './pali-script.js?v=20261014-course2';
+import { pairsComplete } from './pairing.js?v=20261014-course2';
+import { grammarLessons } from './grammar.js?v=20261014-course2';
+import { art, lessonArt, moodArt } from './art.js?v=20261014-course2';
+import { learningStreak } from './game-engine.js?v=20261014-course2';
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const btn = (label, action, disabled = false, style = '') => `<button class="button ${style}" data-action="${action}" ${disabled ? 'disabled' : ''}>${label}</button>`;
 export function termTip(question) {

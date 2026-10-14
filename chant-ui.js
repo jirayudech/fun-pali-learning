@@ -1,6 +1,6 @@
-import { chantPacks, materializePack, KATHINA_RECIPIENT, KATHINA_VIDEO } from './chant-content.js';
-import { chantRoman, chantTokens, compareChant, orderCorrect, parseChantLines, shuffledIndices, recordRecall, daysToKathina, chantVocabulary } from './chant-engine.js';
-import { readAudio, storeAudio } from './chant-audio.js';
+import { chantPacks, materializePack, KATHINA_RECIPIENT, KATHINA_VIDEO } from './chant-content.js?v=20261014-course2';
+import { chantRoman, chantTokens, compareChant, orderCorrect, parseChantLines, shuffledIndices, recordRecall, daysToKathina, chantVocabulary } from './chant-engine.js?v=20261014-course2';
+import { readAudio, storeAudio } from './chant-audio.js?v=20261014-course2';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const button = (text, action, secondary = false, disabled = false) => `<button type="button" class="button ${secondary ? 'secondary' : ''}" data-action="chant-${action}" ${disabled ? 'disabled' : ''}>${text}</button>`;

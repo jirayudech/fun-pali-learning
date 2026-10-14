@@ -46,6 +46,7 @@ jobs:
           psql -v ON_ERROR_STOP=1 -f supabase/games.sql
           psql -v ON_ERROR_STOP=1 -f test/games-database.sql
           psql -v ON_ERROR_STOP=1 -f test/course-database.sql
+          psql -v ON_ERROR_STOP=1 -f test/intensive-course-database.sql
           if psql -v ON_ERROR_STOP=1 -f supabase/update-course.sql > recovery-check.log 2>&1; then
             echo "Recovery must refuse an ambiguous account list"
             exit 1
@@ -58,7 +59,7 @@ jobs:
       - name: Prepare static website
         run: |
           mkdir -p dist
-          cp index.html app.js oauth.js art.js pali-script.js pairing.js grammar.js game-engine.js game-ui.js chant-ui.js chant-engine.js chant-audio.js chant-content.js style.css config.js lessons.js favicon.svg dist/
+          cp index.html app.js oauth.js art.js pali-script.js pairing.js grammar.js game-engine.js game-ui.js exam-ui.js exam-engine.js exam-data.js exam-archive.js exam-lessons.js chant-ui.js chant-engine.js chant-audio.js chant-content.js style.css config.js lessons.js favicon.svg dist/
           cp -r assets dist/assets
           touch dist/.nojekyll
       - uses: actions/configure-pages@v5
