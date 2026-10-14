@@ -7,6 +7,8 @@ import { grammarLessons } from './grammar.js';
 import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js';
 import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js';
 import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js';
+import { createChantController } from './chant-ui.js';
+import { daysToKathina } from './chant-engine.js';
 
 const app = document.querySelector('#app');
 const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl) && Boolean(config.supabasePublishableKey);
@@ -17,6 +19,7 @@ let refreshPromise = null;
 let game = null, gameProgress = null, board = null, gameBusy = false;
 const DEMO_GAME_KEY = 'pali-demo-games-v1';
 const BASELINE_LESSONS = ['sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review'];
+const chants = createChantController({ storageKey: () => `pali-chants-v1:${demo ? 'demo' : dashboard?.user?.id || session?.user?.id || 'this-device'}`, show: shell, notify: toast });
 const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const lessonById = id => lessons.find(l => l.id === id);
 const date = value => new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -52,7 +55,7 @@ function renderAuth(message = '') {
 function shell(content) {
   const name = dashboard.user.name;
   const active = view === 'game' || view === 'game-result' ? 'games' : view.startsWith('lesson:') || view === 'quiz' || view === 'result' ? 'lessons' : view;
-  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['games', '⚡', 'เกมไวยากรณ์'], ['leaderboard', '♜', 'อันดับประจำสัปดาห์'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
+  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['chants', '♫', 'ซ้อมสวดกฐิน'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['games', '⚡', 'เกมไวยากรณ์'], ['leaderboard', '♜', 'อันดับประจำสัปดาห์'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
 }
 function cards() {
   return `<div class="cards">${lessons.map((l, i) => {
@@ -66,10 +69,11 @@ function home() {
   const recommended = lessonById(recommendation.lessonId);
   const mastered = recommendation.stats.filter(s => s.learned).length;
   const average = history.length ? Math.round(history.reduce((n, h) => n + h.score / h.total, 0) / history.length * 100) : 0;
-  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่เรียนแล้ว</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">จากผลฝึกและการแจ้งว่าเรียนแล้ว</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
+  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="bottom-note chant-home"><img src="./assets/kathina.svg" alt="" width="140" height="90"><div><span class="badge">เร่งด่วน · ๑ พ.ย. ๒๕๖๙</span><h2>ซ้อมสวดกฐิน · อีก ${daysToKathina()} วัน</h2><p>บทองค์ที่ ๓ และญัตติทุติยกรรมวาจา · เข้าใจความหมาย จำทีละวรรค</p></div>${button('ไปซ้อมบทสวด →', 'nav:chants')}</section><section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่เรียนแล้ว</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">จากผลฝึกและการแจ้งว่าเรียนแล้ว</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
 }
 function render() {
   if (!dashboard) return renderAuth();
+  if (view === 'chants') return chants.render();
   if (view === 'home') return home();
   if (view === 'games') return shell(gameLobby(gameProgress, learningHistory(), demo, dashboard.reportedLessons || []));
   if (view === 'game') return shell(gameQuestion(game));
@@ -276,6 +280,7 @@ app.addEventListener('click', async event => {
   if (!target || target.disabled) return;
   const action = target.dataset.action;
   try {
+    if (action.startsWith('chant-')) { await chants.action(action); return; }
     if (action.startsWith('learned:')) { await markLessonsLearned([action.split(':')[1]]); render(); return; }
     if (action === 'board-retry') {
       target.disabled = true;
@@ -301,10 +306,11 @@ app.addEventListener('click', async event => {
     if (action.endsWith('-tab')) { authTab = action === 'login-tab' ? 'login' : 'register'; return renderAuth(); }
     if (action === 'demo') { demo = true; view = 'home'; await loadDashboard(); return render(); }
     if (action === 'logout') {
+      chants.leave();
       if (!demo) await request('/auth/v1/logout', { method: 'POST', data: {} });
       saveSession(null); demo = false; dashboard = null; quiz = null; return renderAuth();
     }
-    if (action.startsWith('nav:')) { view = action.split(':')[1]; if (view === 'leaderboard') await loadBoard(); render(); window.scrollTo(0, 0); return; }
+    if (action.startsWith('nav:')) { if (view === 'chants') chants.leave(); view = action.split(':')[1]; if (view === 'leaderboard') await loadBoard(); render(); window.scrollTo(0, 0); return; }
     if (action.startsWith('lesson:')) { view = action; render(); window.scrollTo(0, 0); return; }
     if (action.startsWith('quiz:')) {
       target.disabled = true;
@@ -328,6 +334,12 @@ app.addEventListener('click', async event => {
 app.addEventListener('submit', async event => {
   event.preventDefault();
   const form = event.target;
+  if (form.id.startsWith('chant-')) {
+    const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
+    try { await chants.submit(form); } catch (error) { form.querySelector('.error').textContent = error.message; }
+    finally { if (submit.isConnected) submit.disabled = false; }
+    return;
+  }
   const submit = form.querySelector('[type="submit"]');
   submit.disabled = true;
   const errorEl = form.querySelector('.error'); errorEl.textContent = '';
@@ -356,6 +368,11 @@ app.addEventListener('submit', async event => {
       await loadDashboard(); view = 'result'; render(); window.scrollTo(0, 0);
     }
   } catch (error) { errorEl.textContent = error.message; } finally { if (submit.isConnected) submit.disabled = false; }
+});
+app.addEventListener('change', async event => {
+  if (event.target.id.startsWith('chant-')) {
+    try { await chants.change(event); } catch (error) { toast(error.message); }
+  }
 });
 async function initialize() {
   try {
