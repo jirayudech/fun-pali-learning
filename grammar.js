@@ -1,5 +1,6 @@
 // Original introductory exercises. Examples are composed for learning, not scripture quotations.
-import { intensiveLessons } from './exam-lessons.js?v=20261014-voice3';
+import { intensiveLessons } from './exam-lessons.js?v=20261016-daily1';
+import { followupLessons } from './followup-lessons.js?v=20261016-daily1';
 const choose = (id, text, options, answer, why, kind = 'choose') => ({ id, text, options, answer: [answer], why, kind });
 const build = (id, text, options, answer, why) => ({ id, text, options, answer, why, kind: 'build' });
 const pair = (id, text, left, options, answer, why) => ({ id, text, left, options, answer, why, kind: 'pair' });
@@ -157,4 +158,5 @@ export const nextGrammarLessons = [
 ];
 grammarLessons.push(...nextGrammarLessons);
 grammarLessons.push(...intensiveLessons);
+grammarLessons.push(...followupLessons);
 export const gameQuestions = grammarLessons.flatMap(l => l.questions.map(q => ({ ...q, lessonId: l.id })));

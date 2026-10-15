@@ -53,5 +53,5 @@ test('exactly ten verified years have source IDs matching their year and public 
 test('original writing prompts are not classified as actual past papers, and every category has a review lesson',()=>{
   assert.equal(writingExercises.length,7);assert.ok(writingExercises.every(q=>q.kind==='original'&&q.notes.includes('ไม่ใช่ข้อสอบจริง')));
   assert.ok(authenticTranslationSamples.every(q=>q.kind==='source-excerpt'&&q.notes.includes('ไม่ใช่ข้อสอบทั้งฉบับ')));
-  assert.equal(lessons.length,24);for(const t of examTopics)assert.ok(lessons.some(l=>l.id===t.lesson));
+  assert.equal(lessons.length,30);for(const t of examTopics)assert.ok(lessons.some(l=>l.id===t.lesson));
 });
