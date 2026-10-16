@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 320" role="img" aria-labelledby="title">
+<title id="title">น้องช้างกับบ้านพยัญชนะบาลีห้าแถว</title>
+<rect width="480" height="320" rx="30" fill="#edf2e4"/>
+<ellipse cx="242" cy="290" rx="205" ry="15" fill="#d9e4ca"/>
+<path d="M212 270l-13 26m201-26 13 26" stroke="#ac9166" stroke-width="9" stroke-linecap="round"/>
+<rect x="184" y="32" width="254" height="240" rx="17" fill="#c39d65"/>
+<rect x="194" y="42" width="234" height="220" rx="11" fill="#fff9e7"/>
+<g fill="#dce8d4"><rect x="205" y="57" width="211" height="30" rx="8"/><rect x="205" y="96" width="211" height="30" rx="8"/><rect x="205" y="135" width="211" height="30" rx="8"/><rect x="205" y="174" width="211" height="30" rx="8"/><rect x="205" y="213" width="211" height="30" rx="8"/></g>
+<g fill="#35594b" font-family="sans-serif" font-size="22" text-anchor="middle"><text x="310" y="80">ก ข ค ฆ ง</text><text x="310" y="119">จ ฉ ช ฌ ญ</text><text x="310" y="158">ฏ ฐ ฑ ฒ ณ</text><text x="310" y="197">ต ถ ท ธ น</text><text x="310" y="236">ป ผ พ ภ ม</text></g>
+<ellipse cx="109" cy="235" rx="55" ry="48" fill="#8ebfc3"/>
+<circle cx="106" cy="162" r="51" fill="#afd2d1"/><ellipse cx="67" cy="166" rx="25" ry="35" fill="#91bfc3"/><ellipse cx="149" cy="164" rx="25" ry="35" fill="#91bfc3"/>
+<ellipse cx="66" cy="168" rx="13" ry="20" fill="#e5b7a8"/><path d="M107 169v39q0 19 19 15" stroke="#8abcc0" stroke-width="21" fill="none" stroke-linecap="round"/>
+<path d="M84 151q6-8 12 0m24 0q6-8 12 0" fill="none" stroke="#36594d" stroke-width="4" stroke-linecap="round"/>
+<path d="m157 217 46-37" stroke="#9b8256" stroke-width="6" stroke-linecap="round"/><ellipse cx="154" cy="217" rx="16" ry="12" fill="#a6cfd0"/>
+<path d="M73 278h25m29 0h23" stroke="#83b4b9" stroke-width="19" stroke-linecap="round"/>
+<path d="m49 61 5 14 15 5-15 5-5 15-5-15-15-5 15-5z" fill="#e8bd5e"/><circle cx="122" cy="56" r="13" fill="#d5e1b9"/>
+</svg>

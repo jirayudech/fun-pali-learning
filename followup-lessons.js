@@ -1,5 +1,5 @@
 // Original practice, not actual exam questions or scripture quotations.
-import { chantRoman } from './chant-engine.js?v=20261016-daily1';
+import { chantRoman } from './chant-engine.js?v=20261016-akkhara1';
 const p = text => `${text} (${chantRoman(text)})`;
 const choose = (text, options, answer, why) => ({ text, options, answer: [answer], why, kind: 'choose' });
 const pair = (text, left, options, answer, why) => ({ text, left, options, answer, why, kind: 'pair' });

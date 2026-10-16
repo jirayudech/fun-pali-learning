@@ -1,5 +1,5 @@
-import { gameQuestions, grammarLessons } from './grammar.js?v=20261016-daily1';
-import { authenticTranslationSamples, writingExercises } from './exam-data.js?v=20261016-daily1';
+import { gameQuestions, grammarLessons } from './grammar.js?v=20261016-akkhara1';
+import { authenticTranslationSamples, writingExercises } from './exam-data.js?v=20261016-akkhara1';
 export const examTopics = [
   {id:'T1',title:'สมัญญาภิธาน',lesson:'phonetics'}, {id:'T2',title:'สนธิ',lesson:'sandhi'},
   {id:'T3',title:'นามและสัพพนาม',lesson:'neuter'}, {id:'T4',title:'อาขยาต',lesson:'verb-parts'},

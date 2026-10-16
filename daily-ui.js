@@ -1,9 +1,9 @@
-import { bangkokDay, learningStreak } from './game-engine.js?v=20261016-daily1';
-import { dailyNotes, courseDay, makeDailyPlan, startDaily, replayDaily, reminderEvent } from './daily-engine.js?v=20261016-daily1';
-import { gameQuestions } from './grammar.js?v=20261016-daily1';
-import { gameQuestion } from './game-ui.js?v=20261016-daily1';
-import { selectPair } from './pairing.js?v=20261016-daily1';
-import { paliMarkup } from './pali-script.js?v=20261016-daily1';
+import { bangkokDay, learningStreak } from './game-engine.js?v=20261016-akkhara1';
+import { dailyNotes, courseDay, makeDailyPlan, startDaily, replayDaily, reminderEvent } from './daily-engine.js?v=20261016-akkhara1';
+import { gameQuestions } from './grammar.js?v=20261016-akkhara1';
+import { gameQuestion } from './game-ui.js?v=20261016-akkhara1';
+import { selectPair } from './pairing.js?v=20261016-akkhara1';
+import { paliMarkup } from './pali-script.js?v=20261016-akkhara1';
 const esc = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const button = (text, action, style = '') => `<button class="button ${style}" data-action="${action}">${text}</button>`;
 
@@ -82,7 +82,7 @@ export function createDailyController({ storageKey, context, show, notify }) {
       <section class="panel"><span class="eyebrow">2 · เกมประจำวัน 5 ข้อ</span><h2>${esc(p.title)}</h2><p>${esc(p.reason)}</p>${result?.done ? `<p class="badge">✓ บันทึกภารกิจวันนี้แล้ว · ถูกครั้งแรก ${result.score}/${result.total}</p><p>หากยังไม่แม่น ไปทวนบทเต็มได้ วันนี้ไม่จำเป็นต้องเริ่มภารกิจใหม่เพื่อรักษาวันต่อเนื่อง</p>` : `<p>ตอบผิดมีโอกาสทวนไม่เกิน 2 รอบ กลับมาทำต่อได้เมื่อปิดเว็บ</p>${button(item ? 'ทำภารกิจต่อ →' : 'เริ่มเกมวันนี้ →', 'daily-start')}`}<div class="actions">${button('อ่านบทที่แนะนำก่อน', `lesson:${p.lessonId}`, 'secondary')}${button('เล่นด่านอื่นต่อ', 'nav:games', 'secondary')}</div></section>
       <section class="bottom-note"><img src="./assets/kathina.svg" alt="" width="130" height="90"><div><span class="eyebrow">3 · อย่าลืมเป้าหมายใกล้ตัว</span><h2>ซ้อมสวดกฐินอีก 5 นาที</h2><p>ทวนวรรคที่ยังติด พร้อมเทียบเสียงจริงและคำแปลก่อนวันงาน</p></div>${button('ไปซ้อมบทสวด →', 'nav:chants')}</section>
       <section class="panel"><h2>เตือนให้กลับมาเรียนทุกวัน</h2><label for="daily-time">เวลาเริ่มเรียน (เวลาไทย)</label><input id="daily-time" type="time" value="${esc(data.time)}"><p>กิจกรรมซ้ำทุกวัน 15 นาที เวลา ${esc(data.time)} น. เลือกวิธีเพิ่มลงปฏิทินของคุณ</p><div class="actions"><a class="button" href="${esc(event.googleUrl)}" target="_blank" rel="noopener noreferrer">เพิ่มใน Google ปฏิทิน ↗</a>${button('ดาวน์โหลดสำหรับ Apple / ปฏิทินอื่น', 'daily-calendar', 'secondary')}</div><p class="muted">ใน Google ปฏิทิน ให้ตั้งการแจ้งเตือน “0 นาทีก่อน” เพื่อเตือนตรง 09:00 น. (หรือตามเวลาที่เลือก) แล้วกดบันทึกกิจกรรม เว็บยังไม่ได้ตั้งเตือนบนอุปกรณ์ให้เอง เปิดกิจกรรมเดิมเพื่อเปลี่ยนเวลาหรือยกเลิก แทนการเพิ่มซ้ำ</p></section>
-      <section class="panel"><h2>แผนอ่าน 14 วัน</h2><p class="muted">หัวข้อวันถัดไปเปิดอัตโนมัติเมื่อถึงวันใหม่ ถ้าพร้อมเรียนล่วงหน้า บทเต็มทั้ง 30 บทเปิดให้เรียนได้ทันที</p><ol class="daily-schedule">${dailyNotes.map((n, i) => `<li class="${(p.index - 1) % 14 === i ? 'today' : ''}"><span>วันที่ ${i + 1} · ${n.title}</span>${i < Math.min(p.index, 14) ? button('อ่าน', `daily-note:${i}`, 'secondary small') : '<span class="muted">รอถึงวันเรียน</span>'}</li>`).join('')}</ol></section>
+      <section class="panel"><h2>แผนอ่าน 14 วัน</h2><p class="muted">หัวข้อวันถัดไปเปิดอัตโนมัติเมื่อถึงวันใหม่ ถ้าพร้อมเรียนล่วงหน้า บทเต็มทั้ง ${context().lessonCount || 38} บทเปิดให้เรียนได้ทันที</p><ol class="daily-schedule">${dailyNotes.map((n, i) => `<li class="${(p.index - 1) % 14 === i ? 'today' : ''}"><span>วันที่ ${i + 1} · ${n.title}</span>${i < Math.min(p.index, 14) ? button('อ่าน', `daily-note:${i}`, 'secondary small') : '<span class="muted">รอถึงวันเรียน</span>'}</li>`).join('')}</ol></section>
       <section class="panel"><h2>ประวัติภารกิจของคุณ</h2>${finished.length ? `<ul>${finished.slice().sort((a, b) => b.day.localeCompare(a.day)).slice(0, 14).map(r => `<li>${esc(r.day)} · ถูกครั้งแรก ${replayDaily(r).score}/5</li>`).join('')}</ul>` : '<p>ยังไม่มีผลจบภารกิจ เริ่มวันนี้แล้วค่อย ๆ สะสมวันเรียน</p>'}<p class="muted">ภารกิจและแบบร่างเก็บในเบราว์เซอร์นี้ แยกตามบัญชี ไม่ซิงก์ข้ามเครื่อง และไม่เพิ่ม XP หรืออันดับออนไลน์</p>${button('ดาวน์โหลดสำรองภารกิจ', 'daily-export', 'secondary')}</section>`);
   }
   async function action(action) {
