@@ -1,6 +1,6 @@
-import { akkharaLessons, akkharaSource, consonantRows, speechBases, speechOrgans } from './akkhara-lessons.js?v=20261016-akkhara1';
-import { chantRoman } from './chant-engine.js?v=20261016-akkhara1';
-import { paliMarkup } from './pali-script.js?v=20261016-akkhara1';
+import { akkharaLessons, akkharaSource, consonantRows, speechBases, speechOrgans } from './akkhara-lessons.js?v=20261016-chants2';
+import { chantRoman } from './chant-engine.js?v=20261016-chants2';
+import { paliMarkup } from './pali-script.js?v=20261016-chants2';
 const button = (text, action, style = '') => `<button class="button ${style}" data-action="${action}">${text}</button>`;
 
 export function akkharaProgress(stats = []) {

@@ -1,6 +1,6 @@
 // Original lessons and exercises, organized around the seven Pali Thunder P.1–2 grammar categories.
 // Composed examples are not quotations from an exam or scripture.
-import { chantRoman } from './chant-engine.js?v=20261016-akkhara1';
+import { chantRoman } from './chant-engine.js?v=20261016-chants2';
 const p = text => `${text} (${chantRoman(text)})`;
 const q = (text, options, answer, why, kind = 'choose') => ({text,options,answer:[answer],why,kind});
 const pair = (text,left,options,answer,why) => ({text,left,options,answer,why,kind:'pair'});

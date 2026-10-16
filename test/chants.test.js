@@ -28,7 +28,7 @@ test('ceremony date is 1 November 2026 and large or empty transcript input is re
   assert.equal(daysToKathina('2026-10-14'),18);
   assert.equal(daysToKathina('2026-11-01'),0);
   assert.deepEqual(parseChantLines(' สุณาตุ \n\n เม '),['สุณาตุ','เม']);
-  for(const text of ['', 'x'.repeat(701), Array(121).fill('วรรค').join('\n')]) assert.throws(()=>parseChantLines(text));
+  for(const text of ['', 'x'.repeat(701), Array(1001).fill('วรรค').join('\n')]) assert.throws(()=>parseChantLines(text));
 });
 test('both photograph-based packs use the supplied recipient in the right case and keep response out of the third monk part', () => {
   const third=materializePack(chantPacks[0]); const motion=materializePack(chantPacks[1]);

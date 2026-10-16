@@ -1,9 +1,9 @@
-import { paliMarkup } from './pali-script.js?v=20261016-akkhara1';
-import { pairsComplete } from './pairing.js?v=20261016-akkhara1';
-import { grammarLessons } from './grammar.js?v=20261016-akkhara1';
-import { art, lessonArt, moodArt } from './art.js?v=20261016-akkhara1';
-import { learningStreak } from './game-engine.js?v=20261016-akkhara1';
-import { akkharaQuestionGuide } from './akkhara-ui.js?v=20261016-akkhara1';
+import { paliMarkup } from './pali-script.js?v=20261016-chants2';
+import { pairsComplete } from './pairing.js?v=20261016-chants2';
+import { grammarLessons } from './grammar.js?v=20261016-chants2';
+import { art, lessonArt, moodArt } from './art.js?v=20261016-chants2';
+import { learningStreak } from './game-engine.js?v=20261016-chants2';
+import { akkharaQuestionGuide } from './akkhara-ui.js?v=20261016-chants2';
 const e = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const btn = (label, action, disabled = false, style = '') => `<button class="button ${style}" data-action="${action}" ${disabled ? 'disabled' : ''}>${label}</button>`;
 export function termTip(question) {

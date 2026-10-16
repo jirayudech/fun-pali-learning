@@ -1,4 +1,4 @@
-import { bangkokDay } from './game-engine.js?v=20261016-akkhara1';
+import { bangkokDay } from './game-engine.js?v=20261016-chants2';
 export const KATHINA_DATE = '2026-11-01';
 export function daysToKathina(today = bangkokDay()) {
   return Math.max(0, Math.round((Date.parse(KATHINA_DATE + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000));
@@ -41,7 +41,7 @@ export function compareChant(expected, actual) {
 }
 export function parseChantLines(text) {
   const lines = String(text ?? '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  if (lines.length < 1 || lines.length > 120) throw new Error('ใส่ 1–120 วรรค วรรคละหนึ่งบรรทัด');
+  if (lines.length < 1 || lines.length > 1000) throw new Error('ใส่ 1–1,000 วรรค วรรคละหนึ่งบรรทัด');
   if (lines.some(l => l.length > 700)) throw new Error('วรรคยาวเกินไป กรุณาแบ่งวรรคตามต้นฉบับ');
   return lines;
 }

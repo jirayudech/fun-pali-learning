@@ -1,5 +1,5 @@
-import { grammarLessons, gameQuestions } from './grammar.js?v=20261016-akkhara1';
-import { bangkokDay, createPractice, submitPractice, advancePractice } from './game-engine.js?v=20261016-akkhara1';
+import { grammarLessons, gameQuestions } from './grammar.js?v=20261016-chants2';
+import { bangkokDay, createPractice, submitPractice, advancePractice } from './game-engine.js?v=20261016-chants2';
 
 export const dailyNotes = [
   ['เริ่มที่คำกริยา', 'verb-parts', 'อาขยาตเป็นคำกริยาแบบหนึ่ง เช่น ขาทติ (khādati) กิน ใน ทารโก ผลํ ขาทติ (dārako phalaṃ khādati) เด็กกินผลไม้ เริ่มจากรู้ความหมายทั้งคำก่อนแยกส่วน', 'บอกให้ได้ว่าใครกิน และคำใดบอกการกิน'],

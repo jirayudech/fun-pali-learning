@@ -1,17 +1,17 @@
-import { config } from './config.js?v=20261016-akkhara1';
-import { lessons, recommend } from './lessons.js?v=20261016-akkhara1';
-import { paliMarkup, paliText } from './pali-script.js?v=20261016-akkhara1';
-import { selectPair } from './pairing.js?v=20261016-akkhara1';
-import { art, lessonArt } from './art.js?v=20261016-akkhara1';
-import { grammarLessons } from './grammar.js?v=20261016-akkhara1';
-import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js?v=20261016-akkhara1';
-import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js?v=20261016-akkhara1';
-import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js?v=20261016-akkhara1';
-import { createChantController } from './chant-ui.js?v=20261016-akkhara1';
-import { daysToKathina } from './chant-engine.js?v=20261016-akkhara1';
-import { createExamController } from './exam-ui.js?v=20261016-akkhara1';
-import { createDailyController } from './daily-ui.js?v=20261016-akkhara1';
-import { akkharaHub, akkharaTeaser, akkharaLessonExtras } from './akkhara-ui.js?v=20261016-akkhara1';
+import { config } from './config.js?v=20261016-chants2';
+import { lessons, recommend } from './lessons.js?v=20261016-chants2';
+import { paliMarkup, paliText } from './pali-script.js?v=20261016-chants2';
+import { selectPair } from './pairing.js?v=20261016-chants2';
+import { art, lessonArt } from './art.js?v=20261016-chants2';
+import { grammarLessons } from './grammar.js?v=20261016-chants2';
+import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js?v=20261016-chants2';
+import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js?v=20261016-chants2';
+import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js?v=20261016-chants2';
+import { createChantController } from './chant-ui.js?v=20261016-chants2';
+import { daysToKathina } from './chant-engine.js?v=20261016-chants2';
+import { createExamController } from './exam-ui.js?v=20261016-chants2';
+import { createDailyController } from './daily-ui.js?v=20261016-chants2';
+import { akkharaHub, akkharaTeaser, akkharaLessonExtras } from './akkhara-ui.js?v=20261016-chants2';
 
 const app = document.querySelector('#app');
 const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl) && Boolean(config.supabasePublishableKey);
@@ -32,6 +32,7 @@ function entryView() {
   const params = new URLSearchParams(location.search);
   if (params.get('daily') === '1' || sessionStorage.getItem('pali-open-daily') === '1') return 'daily';
   if (params.get('course') === 'akkhara' || sessionStorage.getItem('pali-open-akkhara') === '1') return 'akkhara';
+  if (params.get('chants') === '1' || sessionStorage.getItem('pali-open-chants') === '1') return 'chants';
   return 'home';
 }
 const date = value => new Date(value).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' });
@@ -67,7 +68,7 @@ function renderAuth(message = '') {
 function shell(content) {
   const name = dashboard.user.name;
   const active = view === 'game' || view === 'game-result' ? 'games' : view.startsWith('lesson:') || view === 'quiz' || view === 'result' ? 'lessons' : view;
-  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['daily', '☀', 'ภารกิจประจำวัน'], ['chants', '♫', 'ซ้อมสวดกฐิน'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['akkhara', 'อ', 'อักขรวิธี'], ['exams', '✎', 'ซ้อมสอบประโยค 1–2'], ['games', '⚡', 'เกมไวยากรณ์'], ['leaderboard', '♜', 'อันดับประจำสัปดาห์'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
+  app.innerHTML = `<div class="shell"><aside class="sidebar">${brand()}<nav class="nav" aria-label="เมนูหลัก">${[['home', '⌂', 'พื้นที่เรียนรู้'], ['daily', '☀', 'ภารกิจประจำวัน'], ['chants', '♫', 'ฝึกท่องบทสวด'], ['lessons', '▤', 'บทเรียนทั้งหมด'], ['akkhara', 'อ', 'อักขรวิธี'], ['exams', '✎', 'ซ้อมสอบประโยค 1–2'], ['games', '⚡', 'เกมไวยากรณ์'], ['leaderboard', '♜', 'อันดับประจำสัปดาห์'], ['history', '◷', 'ประวัติการเรียน'], ['tutor', '✦', 'ติวเตอร์ส่วนตัว']].map(([id, icon, label]) => `<button data-action="nav:${id}" class="${active === id ? 'active' : ''}"><span>${icon}</span>${label}</button>`).join('')}</nav><div class="side-note">“เรียนรู้ทีละน้อย<br>แต่เรียนรู้อย่างสม่ำเสมอ”<p>พื้นที่เล็ก ๆ สำหรับการเติบโต<br>ในทุกวันของคุณ</p></div></aside><main class="main"><header class="topbar"><span>เส้นทางการเรียนรู้ของคุณ</span><div class="account"><span class="avatar">${esc(Array.from(name)[0] || 'ป')}</span><span>${esc(name)}</span>${button(demo ? 'ออกจากโหมดทดลอง' : 'ออกจากระบบ', 'logout', 'secondary small')}</div></header>${demo ? '<div class="banner">โหมดทดลอง • ประวัติอยู่ในเบราว์เซอร์นี้เท่านั้น ยังไม่ใช่บัญชีออนไลน์</div>' : ''}${content}<footer class="footer">บาลีทีละนิด · เรียนด้วยความเข้าใจ เติบโตตามจังหวะของคุณ</footer></main></div>`;
   const nav = app.querySelector('.nav'), activeNav = nav?.querySelector('.active');
   if (nav && activeNav && nav.scrollWidth > nav.clientWidth) {
     const current = activeNav.getBoundingClientRect(), bounds = nav.getBoundingClientRect();
@@ -93,7 +94,7 @@ function render() {
   if (!dashboard) return renderAuth();
   if (view === 'daily') { sessionStorage.removeItem('pali-open-daily'); return daily.render(); }
   if (view === 'akkhara') { sessionStorage.removeItem('pali-open-akkhara'); return shell(akkharaHub(dashboard.recommendation.stats)); }
-  if (view === 'chants') return chants.render();
+  if (view === 'chants') { sessionStorage.removeItem('pali-open-chants'); return chants.render(); }
   if (view === 'exams') return exams.render();
   if (view === 'home') return home();
   if (view === 'games') return shell(gameLobby(gameProgress, learningHistory(), demo, dashboard.reportedLessons || []));
@@ -427,6 +428,7 @@ async function initialize() {
     const params = new URLSearchParams(location.search);
     if (params.get('daily') === '1') sessionStorage.setItem('pali-open-daily', '1');
     if (params.get('course') === 'akkhara') sessionStorage.setItem('pali-open-akkhara', '1');
+    if (params.get('chants') === '1') sessionStorage.setItem('pali-open-chants', '1');
     if (params.get('learned') === 'basics') {
       sessionStorage.setItem('pali-restore-basics', '1');
       params.delete('learned');
@@ -469,6 +471,11 @@ async function initialize() {
   } catch (error) { saveSession(null); renderAuth(error.message); }
 }
 initialize();
+for (const type of ['pointerover', 'pointerout', 'focusin', 'focusout', 'keydown']) {
+  document.addEventListener(type, event => { if (view === 'chants') chants.wordEvent(event); });
+}
+window.addEventListener('scroll', event => { if (view === 'chants') chants.wordEvent(event); }, true);
+window.addEventListener('resize', event => { if (view === 'chants') chants.wordEvent(event); });
 
 let visibleDay = bangkokDay();
 document.addEventListener('visibilitychange', () => {
