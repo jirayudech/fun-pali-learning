@@ -1,7 +1,7 @@
 // Original introductory exercises. Examples are composed for learning, not scripture quotations.
-import { intensiveLessons } from './exam-lessons.js?v=20261016-chants2';
-import { followupLessons } from './followup-lessons.js?v=20261016-chants2';
-import { akkharaLessons } from './akkhara-lessons.js?v=20261016-chants2';
+import { intensiveLessons } from './exam-lessons.js?v=20261026-kale1';
+import { followupLessons } from './followup-lessons.js?v=20261026-kale1';
+import { akkharaLessons } from './akkhara-lessons.js?v=20261026-kale1';
 const choose = (id, text, options, answer, why, kind = 'choose') => ({ id, text, options, answer: [answer], why, kind });
 const build = (id, text, options, answer, why) => ({ id, text, options, answer, why, kind: 'build' });
 const pair = (id, text, left, options, answer, why) => ({ id, text, left, options, answer, why, kind: 'pair' });

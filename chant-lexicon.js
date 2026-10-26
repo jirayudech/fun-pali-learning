@@ -1,5 +1,6 @@
 // Learning glosses written for this app, not a certified ritual translation.
 // Keep inflected forms and compound/sandhi tokens intact; do not guess missing meanings.
+import { kaleGlosses } from './kale-glosses.js?v=20261026-kale1';
 const entries = [
   ['อิธ','ในที่นี้','คำบอกสถานที่หรือบริบท'],
   ['อมฺเหสุ','ในพวกเรา','สัตตมีพหุวจนะของสรรพนามฝ่ายผู้พูด'],
@@ -27,9 +28,10 @@ const entries = [
   ['อวิโกเปตฺวา','โดยไม่ทำให้เสีย / ไม่ทำให้กำเริบ','รูปกิริยาเชื่อม มีความปฏิเสธ อ่านกับวินัยกรรมและการกรานกฐิน'],
   ['กฐินํ','กฐิน','ใน กฐินํ อตฺถริตุํ เป็นสิ่งที่กราน ไม่ได้แปลว่า “ผ้ากฐิน” เหมือนคำ กฐินทุสฺสํ ทุกบริบท'],
   ['อตฺถริตุํ','เพื่อกราน / เพื่อแผ่','รูป ตุํ แสดงความมุ่งหมาย ในบทนี้ใช้กับการกรานกฐิน'],
-  ['มญฺญามหํ','ข้าพเจ้าเข้าใจ / ข้าพเจ้าเห็นว่า','แยก มญฺญามิ + อหํ เป็นรูปสนธิ ไม่ตัดแบ่งโดยเดาตามเสียง'],
-  ['สพฺโพยํ','ทั้งหมดนี้','แยก สพฺโพ + อยํ ในวลีนี้ขยาย สงฺโฆ ว่าสงฆ์ทั้งหมดนี้'],
+  ['มญฺญามหํ','ข้าพเจ้าเข้าใจ / ข้าพเจ้าเห็นว่า','แยก มญฺญามิ + อหํ เป็นสรสนธิ ลบสระหน้า คือ อิ ท้าย มญฺญามิ ไม่ใช่สมาส และไม่แยกเป็น มญฺญาม + อหํ'],
+  ['สพฺโพยํ','ทั้งหมดนี้','แยก สพฺโพ + อยํ เป็นสรสนธิ ลบสระหลัง คือ อ ต้น อยํ ในวลีนี้ขยาย สงฺโฆ ว่าสงฆ์ทั้งหมดนี้'],
   ['สงฺโฆ','สงฆ์','ปฐมาเอกวจนะของ สงฺฆ เป็นประธานในวลีที่ฝึก'],
+  ['ราชปุตฺโต','ลูกของพระราชา','ตัวอย่างเพื่อเรียนเรื่องฉัฏฐีตัปปุริส คลี่เป็น รญฺโญ ปุตฺโต ไม่ใช่ข้อความอ้างคัมภีร์ในชุดบทสวดนี้'],
   ['อิมํ','นี้','รูปคำขยาย ใน อิมํ กฐินทุสฺสํ เทติ สัมพันธ์กับผ้าที่เป็นกรรม'],
   ['สปริวารํ','พร้อมด้วยบริวาร','ขยายผ้ากฐินว่ามีบริวารประกอบ ไม่ใช่กริยาการให้'],
   ['กฐินทุสฺสํ','ผ้ากฐิน','นปุงสกลิงค์เอกวจนะ รูปนี้เป็นประธานหรือกรรมก็ได้ ต้องดูทั้งวรรค'],
@@ -78,12 +80,14 @@ const entries = [
   ['ธารยามิ','ข้าพเจ้าทรงจำไว้ / ถือไว้','กริยาปัจจุบัน อุตตมบุรุษ เอกวจนะ ผู้พูดกล่าวถึงตนเอง']
 ];
 export const chantLexicon = Object.fromEntries(entries.map(([word, meaning, grammar]) => [word, { meaning, grammar }]));
+const kaleLexicon = Object.fromEntries(kaleGlosses.map(([word, meaning, grammar]) => [word, { meaning, grammar }]));
 export function chantWordKey(text) {
   return String(text ?? '').normalize('NFC').replace(/^[\s.,;:!?ฯ()“”"'।॥]+|[\s.,;:!?ฯ()“”"'।॥]+$/g, '');
 }
-export function lookupChantWord(word, { overrides = {}, name, oblique, kathina = false } = {}) {
+export function lookupChantWord(word, { overrides = {}, name, oblique, kathina = false, packId } = {}) {
   const key = chantWordKey(word);
   if (Object.hasOwn(overrides, key)) return { ...overrides[key], origin: 'คำแปลส่วนตัวของวรรคนี้' };
+  if (packId === 'kale-anumodana' && Object.hasOwn(kaleLexicon, key)) return { ...kaleLexicon[key], origin: 'คำแปลพื้นฐานของบทกาเล · ตรวจตามวรรค' };
   if (kathina && (key === name || key === oblique)) return { meaning: key === name ? 'ชื่อพระผู้รับกฐิน ในรูปประธาน' : 'รูปชื่อพระผู้รับกฐินที่สัมพันธ์กับ อายสฺมโต', grammar: 'รูปชื่อเฉพาะที่ผู้เรียนตั้ง ให้พระผู้กำกับยืนยันการสะกดและการแจก', origin: 'ชื่อพระที่ตั้งไว้' };
   if (Object.hasOwn(chantLexicon, key)) return { ...chantLexicon[key], origin: 'คำแปลพื้นฐานเพื่อเรียน · ตรวจตามบริบท' };
   return null;

@@ -1,4 +1,4 @@
-import { grammarLessons } from './grammar.js?v=20261016-chants2';
+import { grammarLessons } from './grammar.js?v=20261026-kale1';
 export const lessons = [
   {
     id: 'sounds', title: 'รู้จักเสียงและอักษร', icon: 'อ', level: 'เริ่มต้น', minutes: 5,

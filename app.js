@@ -1,17 +1,18 @@
-import { config } from './config.js?v=20261016-chants2';
-import { lessons, recommend } from './lessons.js?v=20261016-chants2';
-import { paliMarkup, paliText } from './pali-script.js?v=20261016-chants2';
-import { selectPair } from './pairing.js?v=20261016-chants2';
-import { art, lessonArt } from './art.js?v=20261016-chants2';
-import { grammarLessons } from './grammar.js?v=20261016-chants2';
-import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js?v=20261016-chants2';
-import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js?v=20261016-chants2';
-import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js?v=20261016-chants2';
-import { createChantController } from './chant-ui.js?v=20261016-chants2';
-import { daysToKathina } from './chant-engine.js?v=20261016-chants2';
-import { createExamController } from './exam-ui.js?v=20261016-chants2';
-import { createDailyController } from './daily-ui.js?v=20261016-chants2';
-import { akkharaHub, akkharaTeaser, akkharaLessonExtras } from './akkhara-ui.js?v=20261016-chants2';
+import { config } from './config.js?v=20261026-kale1';
+import { lessons, recommend } from './lessons.js?v=20261026-kale1';
+import { paliMarkup, paliText } from './pali-script.js?v=20261026-kale1';
+import { selectPair } from './pairing.js?v=20261026-kale1';
+import { art, lessonArt } from './art.js?v=20261026-kale1';
+import { grammarLessons } from './grammar.js?v=20261026-kale1';
+import { createPractice, submitPractice, advancePractice, bangkokDay } from './game-engine.js?v=20261026-kale1';
+import { gameLobby, gameQuestion, gameResult, leaderboardView } from './game-ui.js?v=20261026-kale1';
+import { OAUTH_KEY, startGoogleOAuth, consumeGoogleVerifier, oauthErrorMessage } from './oauth.js?v=20261026-kale1';
+import { createChantController } from './chant-ui.js?v=20261026-kale1';
+import { daysToKathina } from './chant-engine.js?v=20261026-kale1';
+import { createExamController } from './exam-ui.js?v=20261026-kale1';
+import { createDailyController } from './daily-ui.js?v=20261026-kale1';
+import { akkharaHub, akkharaTeaser, akkharaLessonExtras } from './akkhara-ui.js?v=20261026-kale1';
+import { chantPublicContent, publicChant, requestedChant, chantShareUrl, CHANT_TARGET_KEY, FEATURED_CHANT } from './chant-public.js?v=20261026-kale1';
 
 const app = document.querySelector('#app');
 const configured = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl) && Boolean(config.supabasePublishableKey);
@@ -19,10 +20,11 @@ const SESSION_KEY = 'pali-auth-v1';
 const DEMO_KEY = 'pali-demo-history-v1';
 let session = null, demo = false, dashboard = null, view = 'home', authTab = 'login', quiz = null;
 let refreshPromise = null;
+let publicPackId = null;
 let game = null, gameProgress = null, board = null, gameBusy = false;
 const DEMO_GAME_KEY = 'pali-demo-games-v1';
 const BASELINE_LESSONS = ['sounds','words','sentences','noun-roles','cases','number','verbs','pronouns','grammar-review'];
-const chants = createChantController({ storageKey: () => `pali-chants-v1:${demo ? 'demo' : dashboard?.user?.id || session?.user?.id || 'this-device'}`, show: shell, notify: toast });
+const chants = createChantController({ storageKey: () => `pali-chants-v1:${demo ? 'demo' : dashboard?.user?.id || session?.user?.id || 'this-device'}`, show: shell, notify: toast, onPackChange: syncChantUrl });
 const exams = createExamController({ storageKey: () => `pali-exams-v1:${demo ? 'demo' : dashboard?.user?.id || session?.user?.id || 'this-device'}`, show: shell, notify: toast });
 const daily = createDailyController({ storageKey: () => `pali-daily-v1:${demo ? 'demo' : dashboard?.user?.id || session?.user?.id || 'this-device'}`,
   context: () => ({ history: learningHistory(), reported: dashboard.reportedLessons || [], lessonTitle: id => lessonById(id).title, lessonCount: lessons.length }), show: shell, notify: toast });
@@ -30,6 +32,7 @@ const esc = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;',
 const lessonById = id => lessons.find(l => l.id === id);
 function entryView() {
   const params = new URLSearchParams(location.search);
+  if (publicChant(sessionStorage.getItem(CHANT_TARGET_KEY))) return 'chants';
   if (params.get('daily') === '1' || sessionStorage.getItem('pali-open-daily') === '1') return 'daily';
   if (params.get('course') === 'akkhara' || sessionStorage.getItem('pali-open-akkhara') === '1') return 'akkhara';
   if (params.get('chants') === '1' || sessionStorage.getItem('pali-open-chants') === '1') return 'chants';
@@ -62,8 +65,38 @@ async function request(path, { method = 'GET', data, authenticated = true } = {}
 }
 function button(label, action, extra = '') { return `<button class="button ${extra}" data-action="${action}">${label}</button>`; }
 function brand() { return '<a class="brand" href="./"><span class="brand-icon">ป</span><span>บาลีทีละนิด<small>PĀLI LEARNING</small></span></a>'; }
+function publicHeader() {
+  return `<header class="public-header">${brand()}<nav aria-label="เมนูหลัก"><button class="button secondary" data-action="public-chants">บทสวดมนต์</button><button class="button secondary" data-action="learning-home">เรียนบาลี</button><button class="button" data-action="${session && !demo ? 'nav:home' : 'auth-open'}">${session && !demo ? 'พื้นที่เรียนรู้ของฉัน' : 'เข้าสู่ระบบ'}</button></nav></header>`;
+}
+function syncChantUrl(id) {
+  if (publicChant(id)) history.replaceState(null, '', chantShareUrl(id));
+  else { const url = new URL(location.href); url.search = '?chants=1'; url.hash = ''; history.replaceState(null, '', url); }
+}
+function clearChantUrl() {
+  const url = new URL(location.href); url.searchParams.delete('chants'); url.searchParams.delete('pack');
+  history.replaceState(null, '', url);
+}
+function renderPublicChants(id = null) {
+  chants.leave(); publicPackId = publicChant(id)?.id || null; view = 'chant-preview';
+  if (publicPackId) syncChantUrl(publicPackId); else clearChantUrl();
+  app.innerHTML = `<div class="public-layout">${publicHeader()}<main>${chantPublicContent(publicPackId, Boolean(session && !demo))}</main><footer class="footer">บาลีทีละนิด · ฝึกท่องฟรี ทีละวรรค ทีละวัน</footer></div>`;
+}
+function rememberChant(id) {
+  if (publicChant(id)) sessionStorage.setItem(CHANT_TARGET_KEY, id);
+  sessionStorage.removeItem('pali-open-daily'); sessionStorage.removeItem('pali-open-akkhara');
+  sessionStorage.setItem('pali-open-chants', '1');
+}
+async function requireChantLogin(id = null) {
+  if (id) rememberChant(id);
+  if (!session || demo) { authTab = 'login'; renderAuth(); return false; }
+  if (session.expires_at < Date.now() / 1000 + 60) {
+    await request('/auth/v1/user');
+  }
+  return true;
+}
 function renderAuth(message = '') {
-  app.innerHTML = `<main class="auth-layout"><section class="auth-intro">${brand()}<div class="auth-mark"><img src="${art.guide}" alt="น้องช้างใบลานชวนเรียนบาลี" width="180" height="180"></div><div class="eyebrow">A LITTLE EVERY DAY</div><h1>เปิดประตูสู่ภาษาบาลี<br>ทีละคำ ทีละวัน</h1><p>เริ่มจากเสียงที่คุ้นเคย ไปสู่ความหมายที่ลึกขึ้น<br>มีพื้นที่เรียนรู้ และเส้นทางที่เป็นของคุณเอง</p><span class="badge">${lessons.length} บทเรียน · เรียนฟรี</span></section><section class="panel"><div class="tabs"><button data-action="login-tab" class="${authTab === 'login' ? 'active' : ''}">เข้าสู่ระบบ</button><button data-action="register-tab" class="${authTab === 'register' ? 'active' : ''}">สร้างบัญชี</button></div>${!configured ? '<div class="banner">เว็บไซต์ยังไม่ได้เชื่อมฐานข้อมูล บัญชีและประวัติออนไลน์ยังใช้ไม่ได้ ลองบทเรียนตัวอย่างได้ด้านล่าง</div>' : ''}<div class="social-auth"><button class="button google full" data-action="google-login" ${!configured ? 'disabled' : ''}><span class="google-mark" aria-hidden="true">G</span>เข้าสู่ระบบด้วย Google</button><div class="auth-divider"><span>หรือใช้อีเมล</span></div></div><form id="auth-form">${authTab === 'register' ? '<label for="name">อยากให้เราเรียกคุณว่าอะไร?</label><input id="name" name="name" maxlength="60" required autocomplete="nickname" placeholder="ชื่อเล่นของคุณ">' : ''}<label for="email">อีเมล</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><label for="password">รหัสผ่าน ${authTab === 'register' ? '(อย่างน้อย 10 ตัว)' : ''}</label><input id="password" name="password" type="password" minlength="${authTab === 'register' ? '10' : '1'}" maxlength="128" required autocomplete="${authTab === 'register' ? 'new-password' : 'current-password'}"><p class="error" id="auth-error" role="alert">${esc(message)}</p><button class="button full" type="submit" ${!configured ? 'disabled' : ''}>${authTab === 'login' ? 'เข้าสู่พื้นที่เรียนรู้ →' : 'สร้างบัญชีของฉัน →'}</button></form><p class="auth-footer">บัญชีและประวัติเก็บที่ Supabase แยกตามผู้เรียน ผู้ดูแลโครงการสามารถเข้าถึงฐานข้อมูลได้ รหัสผ่านจัดการโดย Supabase Auth<br>ไม่มีการเชื่อมบัญชี ChatGPT หรือส่งประวัติไปยัง ChatGPT โดยอัตโนมัติ</p>${button('ลองเรียนโดยไม่สร้างบัญชี', 'demo', 'secondary full')}<p class="auth-footer">โหมดทดลองเก็บประวัติเฉพาะเบราว์เซอร์นี้ ไม่ซิงก์ข้ามเครื่อง</p></section></main>`;
+  view = 'auth';
+  app.innerHTML = `${publicHeader()}<main class="auth-layout"><section class="auth-intro">${brand()}<div class="auth-mark"><img src="${art.guide}" alt="น้องช้างใบลานชวนเรียนบาลี" width="180" height="180"></div><div class="eyebrow">A LITTLE EVERY DAY</div><h1>เปิดประตูสู่ภาษาบาลี<br>ทีละคำ ทีละวัน</h1><p>เริ่มจากเสียงที่คุ้นเคย ไปสู่ความหมายที่ลึกขึ้น<br>มีพื้นที่เรียนรู้ และเส้นทางที่เป็นของคุณเอง</p><span class="badge">${lessons.length} บทเรียน · เรียนฟรี</span></section><section class="panel">${sessionStorage.getItem('pali-open-chants') === '1' ? `<div class="banner">เข้าสู่ระบบเพื่อฝึก ${esc(publicChant(sessionStorage.getItem(CHANT_TARGET_KEY))?.title || 'บทสวดที่เลือก')} · เมื่อเข้าสู่ระบบแล้วจะเปิดบทนี้ให้ทันที</div><p><button class="button secondary small" data-action="auth-back">← กลับไปอ่านบทสวด</button></p>` : ''}<div class="tabs"><button data-action="login-tab" class="${authTab === 'login' ? 'active' : ''}">เข้าสู่ระบบ</button><button data-action="register-tab" class="${authTab === 'register' ? 'active' : ''}">สร้างบัญชี</button></div>${!configured ? '<div class="banner">เว็บไซต์ยังไม่ได้เชื่อมฐานข้อมูล บัญชีและประวัติออนไลน์ยังใช้ไม่ได้ ลองบทเรียนตัวอย่างได้ด้านล่าง</div>' : ''}<div class="social-auth"><button class="button google full" data-action="google-login" ${!configured ? 'disabled' : ''}><span class="google-mark" aria-hidden="true">G</span>เข้าสู่ระบบด้วย Google</button><div class="auth-divider"><span>หรือใช้อีเมล</span></div></div><form id="auth-form">${authTab === 'register' ? '<label for="name">อยากให้เราเรียกคุณว่าอะไร?</label><input id="name" name="name" maxlength="60" required autocomplete="nickname" placeholder="ชื่อเล่นของคุณ">' : ''}<label for="email">อีเมล</label><input id="email" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><label for="password">รหัสผ่าน ${authTab === 'register' ? '(อย่างน้อย 10 ตัว)' : ''}</label><input id="password" name="password" type="password" minlength="${authTab === 'register' ? '10' : '1'}" maxlength="128" required autocomplete="${authTab === 'register' ? 'new-password' : 'current-password'}"><p class="error" id="auth-error" role="alert">${esc(message)}</p><button class="button full" type="submit" ${!configured ? 'disabled' : ''}>${authTab === 'login' ? 'เข้าสู่พื้นที่เรียนรู้ →' : 'สร้างบัญชีของฉัน →'}</button></form><p class="auth-footer">บัญชีและประวัติเก็บที่ Supabase แยกตามผู้เรียน ผู้ดูแลโครงการสามารถเข้าถึงฐานข้อมูลได้ รหัสผ่านจัดการโดย Supabase Auth<br>ไม่มีการเชื่อมบัญชี ChatGPT หรือส่งประวัติไปยัง ChatGPT โดยอัตโนมัติ</p>${button('ลองเรียนโดยไม่สร้างบัญชี', 'demo', 'secondary full')}<p class="auth-footer">โหมดทดลองเก็บประวัติเฉพาะเบราว์เซอร์นี้ ไม่ซิงก์ข้ามเครื่อง</p></section></main>`;
 }
 function shell(content) {
   const name = dashboard.user.name;
@@ -88,13 +121,21 @@ function home() {
   const recommended = lessonById(recommendation.lessonId);
   const mastered = recommendation.stats.filter(s => s.learned).length;
   const average = history.length ? Math.round(history.reduce((n, h) => n + h.score / h.total, 0) / history.length * 100) : 0;
-  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="bottom-note chant-home"><img src="./assets/kathina.svg" alt="" width="140" height="90"><div><span class="badge">เร่งด่วน · ๑ พ.ย. ๒๕๖๙</span><h2>ซ้อมสวดกฐิน · อีก ${daysToKathina()} วัน</h2><p>บทองค์ที่ ๓ และญัตติทุติยกรรมวาจา · เข้าใจความหมาย จำทีละวรรค</p></div>${button('ไปซ้อมบทสวด →', 'nav:chants')}</section>${daily.teaser()}${akkharaTeaser()}<section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่เรียนแล้ว</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">จากผลฝึกและการแจ้งว่าเรียนแล้ว</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><img src="./assets/exam.svg" alt="" width="130" height="90"><div><h3>ซ้อมสอบประโยค 1–2</h3><p>วัดพื้นฐาน เขียนตอบ ฝึกแปล และข้อสอบจริงคัดข้อความย้อนหลังสิบปี</p></div>${button('เข้าห้องซ้อมสอบ →', 'nav:exams')}</section><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
+  shell(`<div class="heading"><div><div class="eyebrow">YOUR LEARNING SPACE</div><h1>สวัสดี ${esc(user.name)} <span aria-hidden="true">☀</span></h1><p class="muted">ฝึกบาลีอักษรไทย เพื่อก้าวสู่สนามหลวงทีละขั้น</p></div><span class="badge">ประโยค 1–2 · 3–4 มี.ค. 2570</span></div><section class="bottom-note chant-home"><img src="./assets/kathina.svg" alt="" width="140" height="90"><div><span class="badge">เร่งด่วน · ๑ พ.ย. ๒๕๖๙</span><h2>ซ้อมสวดกฐิน · อีก ${daysToKathina()} วัน</h2><p>กาเล อนุโมทนากฐิน · บทองค์ที่ ๓ · ญัตติทุติยกรรมวาจา</p></div>${button('ฝึกกาเล →', `practice-chant:${FEATURED_CHANT}`)}${button('เลือกบทสวด', 'nav:chants', 'secondary')}</section>${daily.teaser()}${akkharaTeaser()}<section class="hero"><div><div class="eyebrow">บทเรียนที่แนะนำสำหรับคุณ</div><h2>${recommended.title}</h2><p>${recommendation.reason}</p><p><span class="badge">${recommended.minutes} นาที · ${recommended.level}</span></p>${button('เริ่มเรียนต่อ →', `lesson:${recommended.id}`, 'light')}</div><div class="hero-art"><img src="${art.guide}" alt="น้องช้างใบลานถือหนังสือ" width="180" height="180"></div></section><div class="stats"><div class="stat"><span class="muted">บทเรียนที่เรียนแล้ว</span><div class="value">${mastered}<small>/ ${lessons.length} บท</small></div><span class="muted">จากผลฝึกและการแจ้งว่าเรียนแล้ว</span></div><div class="stat"><span class="muted">ฝึกฝนแล้ว</span><div class="value">${history.length}<small>ครั้ง</small></div><span class="muted">ทุกครั้งคืออีกหนึ่งก้าว</span></div><div class="stat"><span class="muted">คะแนนเฉลี่ย</span><div class="value">${average}<small>%</small></div><span class="muted">${history.length ? 'จากแบบฝึกหัดของคุณ' : 'เริ่มฝึกเพื่อดูความก้าวหน้า'}</span></div></div><section class="bottom-note"><img src="./assets/exam.svg" alt="" width="130" height="90"><div><h3>ซ้อมสอบประโยค 1–2</h3><p>วัดพื้นฐาน เขียนตอบ ฝึกแปล และข้อสอบจริงคัดข้อความย้อนหลังสิบปี</p></div>${button('เข้าห้องซ้อมสอบ →', 'nav:exams')}</section><section class="bottom-note"><div class="symbol">⚡</div><div><h3>ฝึกไวยากรณ์ผ่านเกม</h3><p>เรียงคำ จับคู่ เติมรูปศัพท์ · มี XP และอันดับประจำสัปดาห์</p></div>${button('ไปสนามฝึก →', 'nav:games')}</section><div class="section-head"><h2>ค่อย ๆ เรียนรู้ ทีละบท</h2><span class="muted">พื้นฐานที่มั่นคง เริ่มจากตรงนี้</span></div>${cards()}<section class="bottom-note"><div class="symbol" aria-hidden="true">✦</div><div><h3>มีคำถามระหว่างเรียนไหม?</h3><p>เตรียมบริบทการเรียน แล้วนำไปคุยกับ ChatGPT ของคุณ</p></div>${button('พบติวเตอร์ของคุณ →', 'nav:tutor', 'secondary')}</section>`);
 }
 function render() {
-  if (!dashboard) return renderAuth();
+  if (!dashboard) return renderPublicChants(requestedChant(location.search, sessionStorage.getItem(CHANT_TARGET_KEY)));
   if (view === 'daily') { sessionStorage.removeItem('pali-open-daily'); return daily.render(); }
   if (view === 'akkhara') { sessionStorage.removeItem('pali-open-akkhara'); return shell(akkharaHub(dashboard.recommendation.stats)); }
-  if (view === 'chants') { sessionStorage.removeItem('pali-open-chants'); return chants.render(); }
+  if (view === 'chants') {
+    if (demo || !session) return renderPublicChants(sessionStorage.getItem(CHANT_TARGET_KEY));
+    const target = sessionStorage.getItem(CHANT_TARGET_KEY);
+    if (publicChant(target)) chants.openPack(target);
+    sessionStorage.removeItem('pali-open-chants'); sessionStorage.removeItem(CHANT_TARGET_KEY);
+    chants.render();
+    if (publicChant(target)) document.querySelector('#chant-practice-area')?.scrollIntoView({block:'start'});
+    return;
+  }
   if (view === 'exams') return exams.render();
   if (view === 'home') return home();
   if (view === 'games') return shell(gameLobby(gameProgress, learningHistory(), demo, dashboard.reportedLessons || []));
@@ -310,11 +351,37 @@ app.addEventListener('click', async event => {
   if (!target || target.disabled) return;
   const action = target.dataset.action;
   try {
+    if (action === 'public-chants') { renderPublicChants(); window.scrollTo(0, 0); return; }
+    if (action.startsWith('preview-chant:')) { renderPublicChants(action.split(':')[1]); window.scrollTo(0, 0); return; }
+    if (action.startsWith('practice-chant:')) {
+      const id = action.split(':')[1]; if (!publicChant(id)) return;
+      if (!await requireChantLogin(id)) return;
+      view = 'chants'; render(); window.scrollTo(0, 0); return;
+    }
+    if (action.startsWith('share-chant:')) {
+      const url = chantShareUrl(action.split(':')[1]);
+      try { await navigator.clipboard.writeText(url); toast('คัดลอกลิงก์แล้ว ส่งให้เพื่อนได้เลย'); }
+      catch {
+        let link = document.querySelector('#chant-share-link');
+        if (!link) { link = document.createElement('a'); link.id = 'chant-share-link'; link.className = 'share-link'; target.parentElement.after(link); }
+        link.href = url; link.textContent = url; link.focus();
+        toast('คัดลอกลิงก์ที่แสดงใต้ปุ่มเพื่อส่งให้เพื่อน');
+      }
+      return;
+    }
+    if (action === 'auth-open') { if (view === 'chant-preview') rememberChant(publicPackId || FEATURED_CHANT); return renderAuth(); }
+    if (action === 'auth-back') { return renderPublicChants(sessionStorage.getItem(CHANT_TARGET_KEY) || publicPackId); }
+    if (action === 'learning-home') {
+      sessionStorage.removeItem('pali-open-chants'); sessionStorage.removeItem(CHANT_TARGET_KEY);
+      clearChantUrl();
+      if (dashboard) { view = 'home'; return render(); }
+      return renderAuth();
+    }
     if (view === 'daily' && !action.startsWith('daily-')) daily.leave();
     if (action.startsWith('daily-')) { await daily.action(action); return; }
     if (view === 'exams' && !action.startsWith('exam-')) exams.leave();
     if (action.startsWith('exam-')) { await exams.action(action); return; }
-    if (action.startsWith('chant-')) { await chants.action(action); return; }
+    if (action.startsWith('chant-')) { if (await requireChantLogin()) await chants.action(action); return; }
     if (action.startsWith('learned:')) { await markLessonsLearned([action.split(':')[1]]); render(); return; }
     if (action === 'board-retry') {
       target.disabled = true;
@@ -338,14 +405,14 @@ app.addEventListener('click', async event => {
       return;
     }
     if (action.endsWith('-tab')) { authTab = action === 'login-tab' ? 'login' : 'register'; return renderAuth(); }
-    if (action === 'demo') { demo = true; view = entryView(); await loadDashboard(); return render(); }
+    if (action === 'demo') { demo = true; view = 'home'; await loadDashboard(); return render(); }
     if (action === 'logout') {
       exams.leave();
       chants.leave();
       if (!demo) await request('/auth/v1/logout', { method: 'POST', data: {} });
-      saveSession(null); demo = false; dashboard = null; quiz = null; return renderAuth();
+      saveSession(null); demo = false; dashboard = null; quiz = null; return renderPublicChants();
     }
-    if (action.startsWith('nav:')) { if (view === 'chants') chants.leave(); view = action.split(':')[1]; if (view === 'leaderboard') await loadBoard(); render(); window.scrollTo(0, 0); return; }
+    if (action.startsWith('nav:')) { if (view === 'chants') chants.leave(); view = action.split(':')[1]; if (view !== 'chants') clearChantUrl(); if (view === 'leaderboard') await loadBoard(); render(); window.scrollTo(0, 0); return; }
     if (action.startsWith('lesson:')) { view = action; render(); window.scrollTo(0, 0); return; }
     if (action.startsWith('quiz:')) {
       target.disabled = true;
@@ -376,6 +443,7 @@ app.addEventListener('submit', async event => {
     return;
   }
   if (form.id.startsWith('chant-')) {
+    if (!await requireChantLogin()) return;
     const submit = form.querySelector('[type="submit"]'); submit.disabled = true;
     try { await chants.submit(form); } catch (error) { form.querySelector('.error').textContent = error.message; }
     finally { if (submit.isConnected) submit.disabled = false; }
@@ -418,7 +486,7 @@ app.addEventListener('change', async event => {
     try { await exams.change(event); } catch (error) { toast(error.message); }
   }
   if (event.target.id.startsWith('chant-')) {
-    try { await chants.change(event); } catch (error) { toast(error.message); }
+    try { if (await requireChantLogin()) await chants.change(event); } catch (error) { toast(error.message); }
   }
 });
 app.addEventListener('input', event => { try { exams.input(event); } catch (error) { toast(error.message); } });
@@ -429,6 +497,8 @@ async function initialize() {
     if (params.get('daily') === '1') sessionStorage.setItem('pali-open-daily', '1');
     if (params.get('course') === 'akkhara') sessionStorage.setItem('pali-open-akkhara', '1');
     if (params.get('chants') === '1') sessionStorage.setItem('pali-open-chants', '1');
+    const requestedPack = requestedChant(location.search);
+    if (requestedPack) rememberChant(requestedPack);
     if (params.get('learned') === 'basics') {
       sessionStorage.setItem('pali-restore-basics', '1');
       params.delete('learned');
@@ -467,7 +537,7 @@ async function initialize() {
     }
     view = entryView();
     if (session && configured) { app.innerHTML = '<div class="loading">กำลังเปิดพื้นที่เรียนรู้ของคุณ…</div>'; await loadDashboard(); render(); }
-    else renderAuth();
+    else renderPublicChants(requestedChant(location.search, sessionStorage.getItem(CHANT_TARGET_KEY)));
   } catch (error) { saveSession(null); renderAuth(error.message); }
 }
 initialize();

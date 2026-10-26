@@ -1,17 +1,18 @@
-import { bangkokDay } from './game-engine.js?v=20261016-chants2';
+import { bangkokDay } from './game-engine.js?v=20261026-kale1';
 export const KATHINA_DATE = '2026-11-01';
 export function daysToKathina(today = bangkokDay()) {
   return Math.max(0, Math.round((Date.parse(KATHINA_DATE + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86400000));
 }
 export function normalizeChant(text) {
-  // Preserve Thai phinthu/nikkhahit and every Pali letter; only spacing and punctuation are ignored.
-  return String(text ?? '').normalize('NFC').replace(/[\s.,;:!?ฯ।॥]/g, '');
+  // Preserve Pali letters, phinthu and nikkhahit; canonicalize the equivalent Thai iṃ signs, then ignore spacing/punctuation.
+  return String(text ?? '').normalize('NFC').replaceAll('ึ', 'ิํ').replace(/[\s.,;:!?ฯ।॥]/g, '');
 }
 export function chantRoman(text) {
   const consonants = { ก:'k', ข:'kh', ค:'g', ฆ:'gh', ง:'ṅ', จ:'c', ฉ:'ch', ช:'j', ฌ:'jh', ญ:'ñ', ฏ:'ṭ', ฐ:'ṭh', ฑ:'ḍ', ฒ:'ḍh', ณ:'ṇ', ต:'t', ถ:'th', ท:'d', ธ:'dh', น:'n', ป:'p', ผ:'ph', พ:'b', ภ:'bh', ม:'m', ย:'y', ร:'r', ล:'l', ว:'v', ส:'s', ห:'h', ฬ:'ḷ', อ:'' };
   const vowels = { 'า':'ā', 'ิ':'i', 'ี':'ī', 'ุ':'u', 'ู':'ū' };
   let out = '', leading = '';
-  const chars = Array.from(String(text).normalize('NFC'));
+  // Thai Pali editions also write i + nikkhahit as the single sign ึ (e.g. ตสฺมึ).
+  const chars = Array.from(String(text).normalize('NFC').replaceAll('ึ', 'ิํ'));
   for (let i = 0; i < chars.length; i++) {
     const c = chars[i];
     if (c === 'เ' || c === 'โ') { leading = c === 'เ' ? 'e' : 'o'; continue; }

@@ -1,13 +1,19 @@
-import { chantRoman } from './chant-engine.js?v=20261016-chants2';
-import { chantWordKey } from './chant-lexicon.js?v=20261016-chants2';
+import { chantRoman } from './chant-engine.js?v=20261026-kale1';
+import { chantWordKey } from './chant-lexicon.js?v=20261026-kale1';
+import { lookupChantAnalysis } from './chant-analysis.js?v=20261026-kale1';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 export function chantWordMarkup(text, lineIndex) {
   const html = String(text).split(/(\s+)/).map(token => {
     const word = chantWordKey(token);
     if (!word || /\s/.test(token)) return esc(token);
-    return `<button type="button" class="chant-word" data-action="chant-word:${lineIndex}.${encodeURIComponent(word)}" data-chant-word="${esc(word)}" data-chant-line="${lineIndex}" aria-label="${esc(word)} — ดูคำแปล">${esc(token)}</button>`;
+    return `<button type="button" class="chant-word" data-action="chant-word:${lineIndex}.${encodeURIComponent(word)}" data-chant-word="${esc(word)}" data-chant-line="${lineIndex}" aria-label="${esc(word)} — ดูคำแปลและแยกศัพท์">${esc(token)}</button>`;
   }).join('');
   return `<span class="chant-pali chant-word-line">${html}</span><span class="chant-roman">${esc(chantRoman(text))}</span>`;
+}
+export function chantWordAnalysisMarkup(word) {
+  const analysis = lookupChantAnalysis(word);
+  if (!analysis) return '<section class="chant-analysis" aria-label="วิเคราะห์ศัพท์"><p class="muted">ยังไม่มีบทวิเคราะห์ที่ตรวจแล้วสำหรับรูปคำนี้ จึงยังไม่ระบุชนิดสมาส สนธิ หรือธาตุ คำแปลส่วนตัวที่คุณบันทึกยังใช้ได้ตามเดิม</p></section>';
+  return `<section class="chant-analysis" aria-label="วิเคราะห์ศัพท์"><p class="chant-analysis-formula"><strong>${esc(analysis.formula)}</strong><small>${esc(analysis.brief)}</small></p><details><summary>ดูชนิดและขั้นแปลงรูปทีละขั้น</summary><p>${esc(analysis.context)}</p><h4>แต่ละส่วนแปลว่าอะไร?</h4><ul class="chant-analysis-parts">${analysis.parts.map(([form,meaning])=>`<li><b>${esc(form)}</b> <span class="muted">(${esc(chantRoman(form))})</span> — ${esc(meaning)}</li>`).join('')}</ul><dl><dt>สมาส</dt><dd>${esc(analysis.compound)}</dd><dt>สนธิ</dt><dd>${esc(analysis.sandhi)}</dd><dt>รูปผันและหน้าที่</dt><dd>${esc(analysis.inflection)}</dd></dl><h4>เปลี่ยนรูปอย่างไร?</h4><ol>${analysis.steps.map(step=>`<li>${esc(step)}</li>`).join('')}</ol><p class="muted">${esc(analysis.caution)}</p>${analysis.sources.length?`<details><summary>หลักที่ใช้ตรวจ</summary>${analysis.sources.map(source=>`<p><a href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${esc(source.label)}</a></p><p class="muted">${esc(source.note)}</p>`).join('')}</details>`:''}<p class="muted">บทวิเคราะห์พื้นฐานเพื่อเรียน อ่านเทียบกับบริบทของวรรค ไม่ใช่ตัววิเคราะห์อัตโนมัติหรือการรับรองคำสวดสำหรับวันงาน</p></details></section>`;
 }
 export function createChantTooltip(entryFor) {
   let tooltip, active, timer;
@@ -33,7 +39,8 @@ export function createChantTooltip(entryFor) {
     }
     active?.removeAttribute('aria-describedby'); active = word;
     const token = word.dataset.chantWord, entry = entryFor(token, Number(word.dataset.chantLine));
-    tooltip.innerHTML = `<b>${esc(token)}</b><small>${esc(chantRoman(token))}</small><p>${esc(entry?.meaning || 'ยังไม่มีคำแปลของคำนี้ แตะเพื่อเพิ่มคำแปลส่วนตัวได้')}</p><small>${esc(entry?.origin || 'จะไม่เดาคำแปลให้')}${entry ? ' · แตะดูรูปศัพท์หรือบันทึกคำแปลเฉพาะวรรค' : ''}</small>`;
+    const analysis = lookupChantAnalysis(token);
+    tooltip.innerHTML = `<b>${esc(token)}</b><small>${esc(chantRoman(token))}</small><p>${esc(entry?.meaning || 'ยังไม่มีคำแปลของคำนี้ แตะเพื่อเพิ่มคำแปลส่วนตัวได้')}</p><small class="chant-analysis-preview">${analysis?`${esc(analysis.formula)} · ${esc(analysis.brief)}`:'ยังไม่มีบทวิเคราะห์ที่ตรวจแล้วสำหรับรูปนี้'}</small><small>${esc(entry?.origin || 'จะไม่เดาคำแปลให้')}${entry ? ' · แตะดูขั้นแปลงรูปหรือบันทึกคำแปลเฉพาะวรรค' : ''}</small>`;
     tooltip.hidden = false; active.setAttribute('aria-describedby', tooltip.id);
     position();
   }
