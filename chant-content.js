@@ -1,4 +1,4 @@
-import { KALE_PACK } from './kale-content.js?v=20261026-kale1';
+import { KALE_PACK } from './kale-content.js?v=20261031-pdf1';
 
 // Transcribed from the two photographs supplied by the learner on 14 October 2026.
 // Phinthu and nikkhahit are supplied for Pali reading; this is not an independently verified ritual edition.

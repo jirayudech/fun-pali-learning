@@ -1,9 +1,9 @@
-import { bangkokDay, learningStreak } from './game-engine.js?v=20261026-kale1';
-import { dailyNotes, courseDay, makeDailyPlan, startDaily, replayDaily, reminderEvent } from './daily-engine.js?v=20261026-kale1';
-import { gameQuestions } from './grammar.js?v=20261026-kale1';
-import { gameQuestion } from './game-ui.js?v=20261026-kale1';
-import { selectPair } from './pairing.js?v=20261026-kale1';
-import { paliMarkup } from './pali-script.js?v=20261026-kale1';
+import { bangkokDay, learningStreak } from './game-engine.js?v=20261031-pdf1';
+import { dailyNotes, courseDay, makeDailyPlan, startDaily, replayDaily, reminderEvent } from './daily-engine.js?v=20261031-pdf1';
+import { gameQuestions } from './grammar.js?v=20261031-pdf1';
+import { gameQuestion } from './game-ui.js?v=20261031-pdf1';
+import { selectPair } from './pairing.js?v=20261031-pdf1';
+import { paliMarkup } from './pali-script.js?v=20261031-pdf1';
 const esc = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const button = (text, action, style = '') => `<button class="button ${style}" data-action="${action}">${text}</button>`;
 

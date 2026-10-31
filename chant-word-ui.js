@@ -1,6 +1,6 @@
-import { chantRoman } from './chant-engine.js?v=20261026-kale1';
-import { chantWordKey } from './chant-lexicon.js?v=20261026-kale1';
-import { lookupChantAnalysis } from './chant-analysis.js?v=20261026-kale1';
+import { chantRoman } from './chant-engine.js?v=20261031-pdf1';
+import { chantWordKey } from './chant-lexicon.js?v=20261031-pdf1';
+import { lookupChantAnalysis } from './chant-analysis.js?v=20261031-pdf1';
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 export function chantWordMarkup(text, lineIndex) {
   const html = String(text).split(/(\s+)/).map(token => {

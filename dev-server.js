@@ -3,13 +3,13 @@ import { readFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 const root = dirname(fileURLToPath(import.meta.url));
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.ttf': 'font/ttf', '.txt': 'text/plain' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.pdf': 'application/pdf', '.ttf': 'font/ttf', '.txt': 'text/plain' };
 const files = ['index.html', 'app.js', 'oauth.js', 'art.js', 'pali-script.js', 'pairing.js', 'grammar.js', 'game-engine.js', 'game-ui.js', 'exam-ui.js', 'exam-engine.js', 'exam-data.js', 'exam-archive.js', 'exam-lessons.js', 'followup-lessons.js', 'akkhara-lessons.js', 'akkhara-ui.js', 'daily-engine.js', 'daily-ui.js', 'chant-ui.js', 'chant-lexicon.js', 'chant-library.js', 'chant-word-ui.js', 'chant-engine.js', 'chant-audio.js', 'chant-content.js', 'chant-public.js', 'chant-analysis.js', 'kale-content.js', 'kale-glosses.js', 'style.css', 'config.js', 'lessons.js', 'favicon.svg'];
 http.createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   const file = pathname === '/' || pathname === '/fun-pali-learning/' ? 'index.html' : pathname.replace(/^\/fun-pali-learning\//, '').replace(/^\//, '');
   const isArt = /^assets\/(akkhara|exam|kathina|guide|garden|trophy|sounds|words|sentences|noun-roles|cases|number|verbs|pronouns|grammar-review|community|cheer|thinking|masculine|dative|genitive)(-pollinations)?\.(svg|png|jpg|webp)$/.test(file);
-  if (!files.includes(file) && !isArt && !['assets/fonts/noto-serif-thai.ttf','assets/fonts/OFL-NotoSerifThai.txt'].includes(file)) { res.writeHead(404); res.end('Not found'); return; }
+  if (!files.includes(file) && !isArt && !['assets/kathina-a4.pdf','assets/fonts/noto-serif-thai.ttf','assets/fonts/OFL-NotoSerifThai.txt'].includes(file)) { res.writeHead(404); res.end('Not found'); return; }
   try {
     const content = await readFile(resolve(root, file));
     res.writeHead(200, { 'Content-Type': `${types[file.slice(file.lastIndexOf('.'))]}; charset=utf-8`, 'Cache-Control': 'no-store' });

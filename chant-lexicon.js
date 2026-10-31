@@ -1,6 +1,6 @@
 // Learning glosses written for this app, not a certified ritual translation.
 // Keep inflected forms and compound/sandhi tokens intact; do not guess missing meanings.
-import { kaleGlosses } from './kale-glosses.js?v=20261026-kale1';
+import { kaleGlosses } from './kale-glosses.js?v=20261031-pdf1';
 const entries = [
   ['อิธ','ในที่นี้','คำบอกสถานที่หรือบริบท'],
   ['อมฺเหสุ','ในพวกเรา','สัตตมีพหุวจนะของสรรพนามฝ่ายผู้พูด'],

@@ -1,6 +1,6 @@
 // Facts checked against Pali Thunder's public akkhara unit on 16 October 2026.
 // Explanations, composed examples and game questions are original to this app.
-import { chantRoman } from './chant-engine.js?v=20261026-kale1';
+import { chantRoman } from './chant-engine.js?v=20261031-pdf1';
 const p = text => `${text} (${chantRoman(text)})`;
 export const akkharaSource = { title: 'บาลีธันเดอร์ · อักขรวิธีฉบับเร่งรัด', url: 'https://thunder.purivaro.com/grammar-study/akkhara', checked: '2026-10-16' };
 export const consonantRows = [
